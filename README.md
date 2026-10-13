@@ -120,6 +120,12 @@ Behind the tools:
 - **Summaries.** Template sentences offline, or Claude on Amazon Bedrock when `SUMMARIZER=bedrock`. If Bedrock fails it falls back to the template.
 - **No medical advice.** It only reports what was logged.
 
+## Try it live
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Nicolas-Arsenault/CareCircle)
+
+[`render.yaml`](render.yaml) runs the whole demo (MCP endpoint, simulated Alexa and family page) as one Node process on Render's free plan. It seeds a demo week on every start, and the free instance sleeps when idle, so the demo resets itself between visitors. The first visit after a sleep takes about a minute to wake up.
+
 ## Run it locally (no AWS needed)
 
 Requires Node.js 20 or newer.

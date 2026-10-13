@@ -6,7 +6,7 @@ Short version for the Devpost form. Gallery images are in [`docs/devpost/`](devp
 
 **Built with:** typescript, node.js, model-context-protocol, alexa, aws-lambda, amazon-dynamodb, amazon-eventbridge, amazon-sns, amazon-bedrock, aws-cdk
 
-**Try it out:** https://github.com/Nicolas-Arsenault/CareCircle
+**Try it out:** the live demo URL from Render (see the README's "Try it live"), plus https://github.com/Nicolas-Arsenault/CareCircle
 
 **Video:** upload `docs/video/carecircle-motion.mp4` to YouTube and paste the link.
 
