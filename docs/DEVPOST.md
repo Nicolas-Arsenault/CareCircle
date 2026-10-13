@@ -36,7 +36,7 @@ Alexa+ MCP Toolkit access goes through an Amazon Solutions Architect, add-ons ne
 ## Accomplishments that we're proud of
 
 - The proactive loop: CareCircle notices what *didn't* happen and tells the family once.
-- One codebase that runs on a laptop, on emulated AWS and on real Lambda, with the same handlers.
+- One codebase that runs on a laptop and on emulated AWS, with the same handlers a real Lambda deploy uses.
 - A dashboard that shows the plumbing live: every MCP call, scheduled run and alert.
 - Honest about health: no diagnosis, no advice, only what was logged.
 
