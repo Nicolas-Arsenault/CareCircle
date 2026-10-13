@@ -10,6 +10,7 @@
 
 **Links:**
 - Code: https://github.com/Nicolas-Arsenault/CareCircle (MIT)
+- Demo video (97 s, with sound, for the Devpost video field): `docs/video/carecircle-hero.mp4`
 - Motion demo: `docs/video/carecircle-motion.mp4`
 - Real app walkthrough: `docs/video/app-walkthrough.mp4`
 

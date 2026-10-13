@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CareCircle demo</title>
+<!--
+  The CareCircle demo as code. Every frame is a pure function of time: seek(t) lays the
+  whole stage out for second t, so render.mjs can step through it frame by frame and the
+  result is identical on every run. Open it through `node render.mjs --preview` to watch
+  it play in real time (space pauses, arrow keys scrub).
+-->
+<style>
+  :root {
+    --bg: #f3f5f9; --ink: #141c26; --muted: #5f6b7a; --line: rgba(20,28,38,0.08); --card: #ffffff;
+    --cyan: #1d9bf0; --teal: #0e9f8e; --coral: #f2603f; --violet: #7c5cf0; --amber: #f5a623;
+    --pink: #e0457b; --blue: #3b6cf6; --green: #1fa463;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  body { font-family: "Inter", system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); transform-origin: 0 0; }
+  .abs { position: absolute; }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .center { left: 50%; top: 50%; transform: translate(-50%, -50%); }
+  .mono { font-family: "DejaVu Sans Mono", ui-monospace, Menlo, monospace; }
+
+  /* Background */
+  .blob { position: absolute; border-radius: 50%; filter: blur(130px); opacity: 0.55; }
+  #grid { position: absolute; inset: -40px; background-image: radial-gradient(rgba(20,28,38,0.07) 1.2px, transparent 1.2px); background-size: 36px 36px; }
+  #vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(255,255,255,0.5)); }
+
+  /* Chapter label + headline */
+  .chapter { position: absolute; left: 96px; top: 72px; font-size: 20px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--coral); display: flex; gap: 14px; align-items: center; }
+  .chapter b { color: var(--muted); font-weight: 600; }
+  .headline { position: absolute; left: 96px; top: 112px; font-size: 64px; font-weight: 750; letter-spacing: -0.03em; line-height: 1.08; max-width: 1500px; }
+  .headline em { font-style: normal; background: linear-gradient(90deg, var(--coral), #f59e0b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { position: absolute; left: 96px; font-size: 28px; color: var(--muted); max-width: 1100px; line-height: 1.4; }
+
+  /* Logo */
+  .logo { position: absolute; width: 220px; height: 220px; }
+  .logo i { position: absolute; width: 30px; height: 30px; border-radius: 50%; left: 95px; top: 95px; }
+  .wordmark { font-size: 132px; font-weight: 800; letter-spacing: -0.045em; white-space: nowrap; }
+  .wordmark span { display: inline-block; }
+
+  /* People */
+  .person { position: absolute; width: 300px; text-align: center; }
+  .avatar { width: 190px; height: 190px; border-radius: 50%; margin: 0 auto 22px; display: grid; place-items: center; font-size: 104px; background: #fff; border: 1px solid var(--line); box-shadow: 0 30px 70px rgba(20,28,38,0.12); }
+  .person h3 { margin: 0; font-size: 36px; font-weight: 700; }
+  .person p { margin: 6px 0 0; font-size: 24px; color: var(--muted); }
+  .qbubble { position: absolute; padding: 14px 22px; border-radius: 22px 22px 22px 6px; background: #fff; border: 1px solid var(--line); box-shadow: 0 14px 40px rgba(20,28,38,0.1); font-size: 28px; font-weight: 600; white-space: nowrap; backdrop-filter: blur(6px); }
+
+  /* Echo device (top view) */
+  .echo { position: absolute; width: 300px; height: 300px; border-radius: 50%; }
+  .echo .ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, #1a6dff, var(--cyan), #7ae7ff, #1a6dff, var(--cyan), #1a6dff); }
+  .echo .body { position: absolute; inset: 14px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #2b3640, #10171d 70%); box-shadow: inset 0 0 40px rgba(0,0,0,0.8); }
+  .echo .mesh { position: absolute; inset: 40px; border-radius: 50%; background-image: radial-gradient(rgba(255,255,255,0.08) 1.5px, transparent 1.6px); background-size: 9px 9px; }
+  .echo .glow { position: absolute; inset: -60px; border-radius: 50%; background: radial-gradient(circle, rgba(29,155,240,0.35), transparent 65%); }
+  .echo { box-shadow: 0 40px 90px rgba(20,28,38,0.28); }
+  .echo .btn { position: absolute; width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); }
+
+  /* Speech */
+  .say { position: absolute; padding: 20px 28px; border-radius: 28px; font-size: 32px; line-height: 1.35; max-width: 720px; box-shadow: 0 20px 50px rgba(20,28,38,0.14); }
+  .say.human { background: #fdb827; color: #2a1a00; border-bottom-right-radius: 8px; }
+  .say.human.family { background: #2f8ff5; color: #fff; }
+  .say.alexa { background: #18202b; color: #f1f5f9; border-bottom-left-radius: 8px; }
+  .say small { display: block; font-size: 18px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; margin-bottom: 6px; }
+  .caret { display: inline-block; width: 3px; height: 1em; background: currentColor; margin-left: 2px; vertical-align: -0.12em; }
+
+  /* Service nodes */
+  .node { position: absolute; width: 230px; padding: 18px 18px 16px; border-radius: 22px; background: #fff; border: 1px solid var(--line); box-shadow: 0 20px 50px rgba(20,28,38,0.1); text-align: center; }
+  .node .ic { width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 12px; display: grid; place-items: center; }
+  .node .ic svg { width: 38px; height: 38px; }
+  .node b { display: block; font-size: 23px; font-weight: 700; }
+  .node span { display: block; font-size: 16px; color: var(--muted); margin-top: 4px; line-height: 1.3; }
+  .wire { position: absolute; height: 3px; transform-origin: 0 50%; border-radius: 2px; }
+  .packet { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: currentColor; border: 3px solid #fff; box-shadow: 0 0 16px 5px currentColor; }
+  .code { position: absolute; padding: 18px 22px; border-radius: 16px; background: #18202b; font-size: 21px; line-height: 1.5; white-space: pre; color: #d6e2ee; box-shadow: 0 24px 60px rgba(20,28,38,0.22); }
+  .code .k { color: #5cc8ff; } .code .s { color: #ffd39a; } .code .r { color: #5ee0a0; }
+  .tag { position: absolute; padding: 10px 18px; border-radius: 999px; font-size: 20px; font-weight: 650; background: #fff; color: var(--teal); border: 1px solid rgba(14,159,142,0.35); box-shadow: 0 8px 24px rgba(20,28,38,0.06); white-space: nowrap; }
+
+  /* Screens */
+  .shot { position: absolute; border-radius: 22px; overflow: hidden; box-shadow: 0 50px 120px rgba(20,28,38,0.25), 0 0 0 1px rgba(20,28,38,0.08); background: #f6f4ef; }
+  .shot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+  .bar { height: 38px; background: #e3e7ee; display: flex; gap: 8px; align-items: center; padding: 0 16px; }
+  .bar i { width: 13px; height: 13px; border-radius: 50%; background: #d3cdc1; }
+  .bar u { margin-left: 18px; text-decoration: none; font-size: 15px; color: #7b847f; background: #f6f4ef; border-radius: 8px; padding: 3px 14px; }
+  .hl { position: absolute; border: 4px solid var(--coral); border-radius: 16px; box-shadow: 0 0 40px rgba(242,96,63,0.55); }
+
+  /* Clock */
+  .clock { position: absolute; width: 360px; height: 360px; border-radius: 50%; background: #fff; border: 1px solid var(--line); box-shadow: 0 40px 90px rgba(20,28,38,0.15); }
+  .clock .tick { position: absolute; left: 178px; top: 14px; width: 4px; height: 22px; background: rgba(20,28,38,0.3); transform-origin: 2px 166px; border-radius: 2px; }
+  .clock .hand { position: absolute; left: 50%; bottom: 50%; transform-origin: 50% 100%; border-radius: 6px; }
+  .clock .dot { position: absolute; left: 168px; top: 168px; width: 24px; height: 24px; border-radius: 50%; background: var(--coral); }
+  .bigtime { position: absolute; font-size: 120px; font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+
+  /* Phone */
+  .phone { position: absolute; width: 430px; height: 880px; border-radius: 64px; background: #0b0f14; border: 12px solid #1d242c; box-shadow: 0 60px 120px rgba(20,28,38,0.3), inset 0 0 0 2px rgba(255,255,255,0.06); overflow: hidden; }
+  .phone .wall { position: absolute; inset: 0; background: radial-gradient(circle at 30% 20%, #ffb199, transparent 55%), radial-gradient(circle at 80% 80%, #8fb8ff, transparent 55%), #f7c6a3; }
+  .phone .notch { position: absolute; left: 50%; top: 14px; width: 120px; height: 34px; margin-left: -60px; border-radius: 20px; background: #000; }
+  .phone .ptime { position: absolute; width: 100%; top: 110px; text-align: center; font-size: 92px; font-weight: 300; letter-spacing: -0.02em; color: #fff; }
+  .phone .pdate { position: absolute; width: 100%; top: 86px; text-align: center; font-size: 22px; font-weight: 600; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,0.25); }
+  .notif { position: absolute; left: 18px; right: 18px; padding: 16px 18px; border-radius: 26px; background: rgba(255,255,255,0.88); color: #111; backdrop-filter: blur(20px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+  .notif .app { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.03em; }
+  .notif .app i { width: 26px; height: 26px; border-radius: 7px; background: var(--coral); display: grid; place-items: center; }
+  .notif .app em { margin-left: auto; font-style: normal; text-transform: none; font-weight: 500; color: #777; }
+  .notif p { margin: 6px 0 0; font-size: 19px; line-height: 1.35; }
+  .notif p b { display: block; }
+
+  /* Report */
+  .doc { position: absolute; width: 760px; padding: 44px 50px; border-radius: 24px; background: #fff; color: #1d2529; border: 1px solid var(--line); box-shadow: 0 50px 120px rgba(20,28,38,0.15); }
+  .doc h4 { margin: 0 0 6px; font-size: 30px; letter-spacing: -0.01em; }
+  .doc .range { color: #6b777b; font-size: 19px; margin-bottom: 24px; }
+  .doc .line { font-size: 22px; line-height: 1.55; }
+  .doc .line.h { font-weight: 700; margin-top: 16px; }
+  .doc .fine { font-size: 17px; color: #6b777b; margin-top: 18px; font-style: italic; }
+  .stat { position: absolute; width: 300px; padding: 26px 28px; border-radius: 24px; background: #fff; border: 1px solid var(--line); box-shadow: 0 20px 50px rgba(20,28,38,0.08); }
+  .stat b { display: block; font-size: 64px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 21px; color: var(--muted); }
+  .meter { height: 10px; border-radius: 6px; background: rgba(20,28,38,0.07); margin-top: 14px; overflow: hidden; }
+  .meter i { display: block; height: 100%; border-radius: 6px; }
+
+  /* Tools ring */
+  .tool { position: absolute; padding: 9px 16px; border-radius: 12px; font-size: 19px; background: #18202b; color: #d6e2ee; white-space: nowrap; }
+
+  #progress { position: absolute; left: 0; bottom: 0; height: 5px; background: linear-gradient(90deg, var(--coral), var(--amber)); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg">
+    <div class="blob" id="b1" style="width:900px;height:900px;background:#ffc9b8"></div>
+    <div class="blob" id="b2" style="width:800px;height:800px;background:#bfdcff"></div>
+    <div class="blob" id="b3" style="width:700px;height:700px;background:#c9f0d9"></div>
+    <div id="grid"></div>
+    <div id="vignette"></div>
+  </div>
+
+  <!-- 1. Title -->
+  <section class="scene" id="s-title">
+    <div class="logo" id="t-logo" style="left:850px;top:170px"></div>
+    <div class="wordmark abs" id="t-word" style="left:960px;top:440px;transform:translateX(-50%)"></div>
+    <div class="abs" id="t-sub" style="left:0;right:0;top:640px;text-align:center;font-size:36px;color:var(--muted)">An Alexa+ add-on that keeps an aging parent<br>and their family in the loop.</div>
+    <div class="abs" id="t-tag" style="left:0;right:0;top:800px;text-align:center"><span class="tag" style="position:static;display:inline-block">Amazon Developer Hackathon 2026 · Alexa+ track</span></div>
+  </section>
+
+  <!-- 2. The problem -->
+  <section class="scene" id="s-problem">
+    <div class="chapter" id="p-ch">The problem</div>
+    <div class="headline" id="p-head">Mom lives alone. <em>Sarah lives three hours away.</em></div>
+    <div class="person" id="p-mom" style="left:290px;top:420px"><div class="avatar">🧓</div><h3>Mom, 78</h3><p>Lives on her own</p></div>
+    <div class="person" id="p-sarah" style="left:1330px;top:420px"><div class="avatar">👩</div><h3>Sarah</h3><p>Her daughter, at work</p></div>
+    <svg class="abs" id="p-line" style="left:640px;top:500px" width="640" height="40"><line x1="0" y1="20" x2="640" y2="20" stroke="rgba(20,28,38,0.3)" stroke-width="3" stroke-dasharray="10 12"/></svg>
+    <div class="abs" id="p-km" style="left:640px;width:640px;top:540px;text-align:center;font-size:24px;color:var(--muted)">280 km</div>
+    <div class="qbubble" id="p-q1" style="left:1060px;top:300px">Did she take her pills?</div>
+    <div class="qbubble" id="p-q2" style="left:1620px;top:330px">Did she eat?</div>
+    <div class="qbubble" id="p-q3" style="left:1600px;top:720px">Is she okay?</div>
+    <div class="abs" id="p-answer" style="left:0;right:0;top:880px;text-align:center;font-size:42px;font-weight:700">CareCircle closes the gap, <span style="color:var(--teal)">with nothing but her voice.</span></div>
+  </section>
+
+  <!-- 3. Morning check-in -->
+  <section class="scene" id="s-morning">
+    <div class="chapter" id="m-ch">01 <b>·</b> Morning check-in</div>
+    <div class="headline" id="m-head" style="font-size:54px">Mom just talks to Alexa.</div>
+    <div class="abs" id="m-time" style="left:96px;top:196px;font-size:26px;color:var(--muted)"></div>
+    <div class="echo" id="m-echo" style="left:250px;top:470px"><div class="glow"></div><div class="ring"></div><div class="body"><div class="mesh"></div></div></div>
+    <div class="say human" id="m-say1" style="right:auto"></div>
+    <div class="say alexa" id="m-rep1"></div>
+    <div id="m-pipe"></div>
+    <div class="code mono" id="m-code"></div>
+    <div class="tag" id="m-tag" style="left:1100px;top:930px">Natural dose matching: "the little white pill" = the 8 AM Metformin</div>
+  </section>
+
+  <!-- 4. The family view -->
+  <section class="scene" id="s-screen">
+    <div class="chapter" id="v-ch">02 <b>·</b> The family view</div>
+    <div class="headline" id="v-head" style="font-size:54px">Everyone sees it <em>the moment she says it.</em></div>
+    <div class="shot" id="v-shot"><div class="bar"><i></i><i></i><i></i><u>127.0.0.1:3000</u></div><img id="v-img" alt=""></div>
+    <div class="hl" id="v-hl"></div>
+  </section>
+
+  <!-- 5. Family asks -->
+  <section class="scene" id="s-ask">
+    <div class="chapter" id="a-ch">03 <b>·</b> The family asks</div>
+    <div class="headline" id="a-head" style="font-size:54px">"Alexa, how's Mom today?"</div>
+    <div class="echo" id="a-echo" style="left:1420px;top:330px"><div class="glow"></div><div class="ring"></div><div class="body"><div class="mesh"></div></div></div>
+    <div class="person" id="a-sarah" style="left:1420px;top:700px;width:300px"><div class="avatar" style="width:120px;height:120px;font-size:66px">👩</div><h3 style="font-size:28px">Sarah, at work</h3></div>
+    <div class="say human" id="a-say"></div>
+    <div class="say alexa" id="a-rep" style="max-width:900px;font-size:36px"></div>
+    <div class="code mono" id="a-code"></div>
+    <div class="abs" id="a-note" style="left:96px;top:940px;font-size:26px;color:var(--muted)">One sentence, built from what was logged today. No app to open, no medical advice.</div>
+  </section>
+
+  <!-- 6. Missed check-in -->
+  <section class="scene" id="s-alert">
+    <div class="chapter" id="x-ch" style="color:var(--coral)">04 <b>·</b> When something's missed</div>
+    <div class="headline" id="x-head" style="font-size:54px">10:00 AM. <span style="color:var(--coral)">No check-in from Mom.</span></div>
+    <div class="clock" id="x-clock" style="left:180px;top:330px"></div>
+    <div class="bigtime" id="x-time" style="left:120px;top:730px;width:480px;text-align:center"></div>
+    <div id="x-pipe"></div>
+    <div class="phone" id="x-phone" style="left:1390px;top:150px"><div class="wall"></div><div class="notch"></div><div class="pdate" id="x-pdate">Tuesday, October 13</div><div class="ptime" id="x-ptime">10:00</div><div id="x-notifs"></div></div>
+  </section>
+
+  <!-- 7. Weekly summary -->
+  <section class="scene" id="s-weekly">
+    <div class="chapter" id="w-ch" style="color:var(--violet)">05 <b>·</b> Friday</div>
+    <div class="headline" id="w-head" style="font-size:54px">A one-page summary <em>ready for the doctor.</em></div>
+    <div class="doc" id="w-doc" style="left:96px;top:250px"></div>
+    <div class="stat" id="w-s1" style="left:960px;top:300px"><b id="w-v1">0%</b><span>of doses confirmed</span><div class="meter"><i id="w-m1" style="background:var(--teal)"></i></div></div>
+    <div class="stat" id="w-s2" style="left:1300px;top:300px"><b id="w-v2">0/7</b><span>days checked in</span><div class="meter"><i id="w-m2" style="background:var(--cyan)"></i></div></div>
+    <div class="stat" id="w-s3" style="left:960px;top:560px;width:640px"><b id="w-v3" style="font-size:48px">Mood 0.0 / 5</b><svg id="w-spark" width="580" height="120" style="margin-top:10px"></svg></div>
+    <div class="tag" id="w-tag" style="left:960px;top:880px;color:var(--violet);border-color:rgba(124,92,240,0.4)">Written by Claude on Amazon Bedrock, or offline templates</div>
+  </section>
+
+  <!-- 8. Architecture -->
+  <section class="scene" id="s-arch">
+    <div class="chapter" id="r-ch">Under the hood</div>
+    <div class="headline" id="r-head" style="font-size:54px">One MCP server. <em>Eight tools. Serverless on AWS.</em></div>
+    <div id="r-diagram" style="position:absolute;inset:0;top:80px"></div>
+  </section>
+
+  <!-- 9. Outro -->
+  <section class="scene" id="s-outro">
+    <div class="logo" id="o-logo" style="left:850px;top:150px"></div>
+    <div class="wordmark abs" id="o-word" style="left:960px;top:400px;transform:translateX(-50%);font-size:110px">CareCircle</div>
+    <div class="abs" id="o-sub" style="left:0;right:0;top:570px;text-align:center;font-size:34px;color:var(--muted)">Peace of mind for the family. Independence for Mom.</div>
+    <div class="abs" id="o-chips" style="left:0;right:0;top:680px;text-align:center"></div>
+    <div class="abs mono" id="o-url" style="left:0;right:0;top:850px;text-align:center;font-size:30px;color:var(--teal)">github.com/Nicolas-Arsenault/CareCircle</div>
+  </section>
+
+  <div id="progress"></div>
+</div>
+
+<script>
+// ---------- helpers ----------
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const E = {
+  out: (x) => 1 - Math.pow(1 - x, 3),
+  inOut: (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2),
+  back: (x) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); },
+  lin: (x) => x,
+};
+/** 0..1 progress of an animation that starts at `a` and lasts `d` seconds. */
+const P = (t, a, d, ease = E.out) => ease(clamp((t - a) / d));
+function css(el, { x = 0, y = 0, s = 1, r = 0, o = 1, blur = 0 } = {}) {
+  el.style.transform = `translate(${x}px, ${y}px) scale(${s}) rotate(${r}deg)`;
+  el.style.opacity = o;
+  el.style.filter = blur ? `blur(${blur}px)` : "";
+}
+/** Rise-and-fade entrance at time a. */
+function rise(el, t, a, d = 0.7, dist = 40, extra = {}) {
+  const k = P(t, a, d);
+  css(el, { y: (1 - k) * dist, o: k, ...extra });
+  return k;
+}
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+/** Typewriter: the first n characters of text at time t, with a caret while typing. */
+function typed(text, t, a, cps = 28) {
+  const n = Math.floor(clamp((t - a) * cps, 0, text.length));
+  const caret = t >= a && n < text.length ? '<span class="caret"></span>' : "";
+  return esc(text.slice(0, n)) + caret;
+}
+const typeEnd = (text, a, cps = 28) => a + text.length / cps;
+
+// ---------- data from the real app (captures/data.json) ----------
+let D;
+const fallback = {
+  runs: {
+    good: { turns: [
+      { said: "Good morning!", reply: "Got it. I've noted your check-in at 8:54 AM, and the family can see it.", trace: [] },
+      { said: "Had my oatmeal and the little white pill", reply: "Got it. I've logged your medication and meal for the family.", trace: [] },
+      {}, { said: "How's Mom today?", reply: "Mom first checked in at 8:54 AM. Mom has taken 1 of 2 medications today. One meal logged. Coming up: Dr. Patel checkup Thursday at 2 PM." },
+    ], report: "Weekly care summary for Mom\n\nMedication: 12 of 13 scheduled doses confirmed (92%)." },
+    quiet: { alerts: ["Mom hasn't checked in yet today (expected by 10:00).", "Mom's 08:00 dose of Metformin hasn't been confirmed."] },
+  },
+};
+
+// ---------- icons ----------
+const ICON = {
+  alexa: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="none" stroke="#fff" stroke-width="4"/><path d="M14 27c2-2 4-3 6-3s4 1 6 3" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></svg>',
+  mcp: '<svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><path d="M8 20l9-9a5 5 0 017 7l-8 8"/><path d="M14 26l9-9"/><path d="M32 20l-9 9a5 5 0 01-7-7"/></svg>',
+  lambda: '<svg viewBox="0 0 40 40"><path d="M10 33h6l5-11 6 11h5L20 7h-6l2 5z" fill="#fff"/></svg>',
+  dynamo: '<svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="3"><ellipse cx="20" cy="10" rx="12" ry="4.5"/><path d="M8 10v20c0 2.5 5.4 4.5 12 4.5s12-2 12-4.5V10"/><path d="M8 20c0 2.5 5.4 4.5 12 4.5s12-2 12-4.5"/></svg>',
+  clock: '<svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><circle cx="20" cy="20" r="13"/><path d="M20 12v8l6 4"/></svg>',
+  sns: '<svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round"><path d="M7 11h26v16H17l-7 6v-6H7z"/><path d="M13 18h14M13 22h9" stroke-linecap="round"/></svg>',
+  bedrock: '<svg viewBox="0 0 40 40" fill="#fff"><path d="M20 5l3.5 11.5L35 20l-11.5 3.5L20 35l-3.5-11.5L5 20l11.5-3.5z"/></svg>',
+  phone: '<svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="3.2"><rect x="11" y="5" width="18" height="30" rx="4"/><path d="M18 30h4" stroke-linecap="round"/></svg>',
+  web: '<svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="3.2"><rect x="5" y="8" width="30" height="24" rx="4"/><path d="M5 15h30"/></svg>',
+  people: '<svg viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"><circle cx="15" cy="14" r="5"/><circle cx="27" cy="16" r="4"/><path d="M6 32c1-6 5-9 9-9s8 3 9 9M24 25c4 0 8 2 9 7"/></svg>',
+};
+const COL = { alexa: "#1a8cff", mcp: "#0f7b6c", lambda: "#f08a24", dynamo: "#3b6cf6", clock: "#d6457f", sns: "#d6457f", bedrock: "#7c5cf0", phone: "#2f9d8a", web: "#4b5b66", people: "#2f9d8a" };
+function nodeHTML(id, icon, title, sub, left, top, w = 230) {
+  return `<div class="node" id="${id}" style="left:${left}px;top:${top}px;width:${w}px"><div class="ic" style="background:${COL[icon]}">${ICON[icon]}</div><b>${title}</b>${sub ? `<span>${sub}</span>` : ""}</div>`;
+}
+/** A wire from (x1,y1) to (x2,y2) that draws itself between a and a+d. */
+function wire(el, t, a, d = 0.5) {
+  const k = P(t, a, d, E.inOut);
+  const { x1, y1, x2, y2 } = el.dataset;
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  el.style.left = x1 + "px"; el.style.top = y1 + "px";
+  el.style.width = len * k + "px";
+  el.style.transform = `rotate(${Math.atan2(y2 - y1, x2 - x1)}rad)`;
+}
+function wireHTML(id, x1, y1, x2, y2, color) {
+  return `<div class="wire" id="${id}" data-x1="${x1}" data-y1="${y1}" data-x2="${x2}" data-y2="${y2}" style="background:linear-gradient(90deg, ${color}55, ${color})"></div>`;
+}
+/** A glowing packet moving along a list of points between a and a+d. */
+function packet(el, t, a, d, pts) {
+  const k = (t - a) / d;
+  if (k < 0 || k > 1) { el.style.opacity = 0; return; }
+  const segs = [];
+  let total = 0;
+  for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); segs.push(l); total += l; }
+  let dist = E.inOut(k) * total, i = 0;
+  while (i < segs.length - 1 && dist > segs[i]) { dist -= segs[i]; i++; }
+  const f = segs[i] ? dist / segs[i] : 0;
+  el.style.left = lerp(pts[i][0], pts[i + 1][0], f) + "px";
+  el.style.top = lerp(pts[i][1], pts[i + 1][1], f) + "px";
+  el.style.opacity = Math.min(1, k * 8, (1 - k) * 8);
+}
+
+// ---------- logo ----------
+const LOGO_COLORS = ["#31c3ff", "#43c2ad", "#3ddc97", "#ffb547", "#ff8a5b", "#ff5d8f", "#a78bfa", "#5b8cff"];
+function buildLogo(el) { el.innerHTML = LOGO_COLORS.map((c) => `<i style="background:${c};box-shadow:0 0 24px ${c}"></i>`).join(""); }
+function logo(el, t, a, spin = 0) {
+  [...el.children].forEach((dot, i) => {
+    const k = P(t, a + i * 0.08, 0.9, E.back);
+    const ang = (i / 8) * Math.PI * 2 - Math.PI / 2 + spin * t;
+    const r = 80 * k;
+    css(dot, { x: Math.cos(ang) * r, y: Math.sin(ang) * r, s: 0.4 + 0.6 * k, o: clamp(k * 2) });
+  });
+}
+
+// ---------- scenes ----------
+const S = [];
+function scene(id, start, end, build, render) { S.push({ el: $(id), start, end, build, render }); }
+
+// 1. Title
+scene("s-title", 0, 6.4, () => {
+  buildLogo($("t-logo"));
+  $("t-word").innerHTML = [..."CareCircle"].map((c) => `<span>${c}</span>`).join("");
+}, (t) => {
+  logo($("t-logo"), t, 0.3, 0.25);
+  [...$("t-word").children].forEach((sp, i) => { const k = P(t, 1.2 + i * 0.05, 0.7, E.back); css(sp, { y: (1 - k) * 60, o: clamp(k * 1.5) }); });
+  rise($("t-sub"), t, 2.2, 0.8);
+  rise($("t-tag"), t, 3.0, 0.8);
+});
+
+// 2. Problem
+scene("s-problem", 6.4, 14.6, null, (t) => {
+  rise($("p-ch"), t, 0.2); rise($("p-head"), t, 0.4);
+  rise($("p-mom"), t, 0.9, 0.8, 60); rise($("p-sarah"), t, 1.2, 0.8, 60);
+  const k = P(t, 1.6, 1.2, E.inOut);
+  $("p-line").style.clipPath = `inset(0 ${(1 - k) * 100}% 0 0)`;
+  rise($("p-km"), t, 2.4);
+  ["p-q1", "p-q2", "p-q3"].forEach((id, i) => {
+    const kk = P(t, 2.8 + i * 0.6, 0.6, E.back);
+    css($(id), { y: (1 - kk) * 20 + Math.sin(t * 1.4 + i) * 6, s: 0.7 + 0.3 * kk, o: clamp(kk) });
+  });
+  rise($("p-answer"), t, 5.4, 0.8);
+});
+
+// 3. Morning check-in
+const M = { a1: 1.6 };
+scene("s-morning", 14.6, 32.0, () => {
+  const g = D.runs.good.turns;
+  M.said1 = g[0].said; M.rep1 = g[0].reply; M.said2 = g[1].said; M.rep2 = g[1].reply;
+  M.time = (M.rep1.match(/\d{1,2}:\d{2} [AP]M/) || ["8:54 AM"])[0];
+  $("m-time").textContent = `Tuesday, ${M.time} · Mom's kitchen`;
+  // Pipeline on the right: Alexa+ -> MCP server -> DynamoDB
+  const y = 330;
+  $("m-pipe").innerHTML =
+    wireHTML("m-w1", 1090, y + 75, 1230, y + 75, "#1d9bf0") + wireHTML("m-w2", 1460, y + 75, 1600, y + 75, "#0e9f8e") +
+    nodeHTML("m-n1", "alexa", "Alexa+", "picks the tool", 860, y) +
+    nodeHTML("m-n2", "lambda", "CareCircle MCP", "Lambda · Function URL", 1230, y) +
+    nodeHTML("m-n3", "dynamo", "DynamoDB", "the family's timeline", 1600, y) +
+    '<div class="packet" id="m-p1" style="color:#1d9bf0"></div><div class="packet" id="m-p2" style="color:#0e9f8e"></div>';
+  // timings
+  M.r1 = typeEnd(M.said1, M.a1, 16) + 0.5;           // Alexa reply 1 starts
+  M.a2 = M.r1 + 4.2;                                  // second utterance
+  M.r2 = typeEnd(M.said2, M.a2, 22) + 1.4;            // reply 2 starts
+}, (t) => {
+  rise($("m-ch"), t, 0.2); rise($("m-head"), t, 0.4); rise($("m-time"), t, 0.6);
+  // Echo: ring brightness while listening/speaking
+  const echo = $("m-echo");
+  const speaking = (t > M.a1 && t < M.r1 + 2.6) || (t > M.a2 && t < M.r2 + 2.6);
+  const glow = speaking ? 0.6 + 0.4 * Math.sin(t * 9) : 0.15;
+  rise(echo, t, 0.5, 0.9, 50);
+  echo.querySelector(".glow").style.opacity = glow;
+  echo.querySelector(".ring").style.opacity = 0.35 + glow * 0.65;
+  echo.querySelector(".ring").style.transform = `rotate(${t * 140}deg)`;
+
+  const phase2 = t >= M.a2 - 0.6;
+  const fade1 = 1 - P(t, M.a2 - 0.8, 0.5);
+  // Utterance 1 and reply
+  const s1 = $("m-say1");
+  s1.style.left = "120px"; s1.style.top = "300px";
+  s1.innerHTML = `<small>Mom</small>` + typed(phase2 ? M.said2 : M.said1, t, phase2 ? M.a2 : M.a1, phase2 ? 22 : 16);
+  if (!phase2) rise(s1, t, M.a1 - 0.2, 0.5, 20, { o: Math.min(P(t, M.a1 - 0.2, 0.5), fade1) });
+  else rise(s1, t, M.a2 - 0.3, 0.5, 20);
+  const r1 = $("m-rep1");
+  r1.style.left = "120px"; r1.style.top = "800px"; r1.style.maxWidth = "820px";
+  const rs = phase2 ? M.r2 : M.r1, rt = phase2 ? M.rep2 : M.rep1;
+  r1.innerHTML = `<small>Alexa</small>` + typed(rt, t, rs, 34);
+  const kr = P(t, rs - 0.2, 0.5);
+  css(r1, { y: (1 - kr) * 20, o: phase2 ? kr : Math.min(kr, fade1) });
+
+  // Pipeline
+  ["m-n1", "m-n2", "m-n3"].forEach((id, i) => rise($(id), t, 0.9 + i * 0.25, 0.7, 30));
+  wire($("m-w1"), t, 1.4); wire($("m-w2"), t, 1.7);
+  const send1 = M.a1 + 0.9, send2 = M.a2 + 1.6;
+  packet($("m-p1"), t, send1, 1.4, [[1090, 405], [1230, 405], [1600, 405]]);
+  packet($("m-p2"), t, send2, 1.4, [[1090, 405], [1230, 405], [1600, 405]]);
+  // Tool call code card
+  const code = $("m-code");
+  code.style.left = "1090px"; code.style.top = "560px";
+  const calls = phase2
+    ? [`<span class="k">→ tools/call</span> log_checkin`, `  { kind: <span class="s">"medication"</span>, text: <span class="s">"…little white pill"</span> }`, `<span class="k">→ tools/call</span> log_checkin`, `  { kind: <span class="s">"meal"</span>, text: <span class="s">"Had my oatmeal…"</span> }`, `<span class="r">← Metformin marked taken at ${M.time}</span>`]
+    : [`<span class="k">→ tools/call</span> log_checkin`, `  { kind: <span class="s">"checkin"</span>, text: <span class="s">"Good morning!"</span> }`, `<span class="r">← check-in noted at ${M.time}</span>`];
+  const cstart = phase2 ? send2 : send1;
+  code.innerHTML = calls.map((l, i) => (t > cstart + 0.35 * i ? l : "")).filter(Boolean).join("\n") || " ";
+  const kc = P(t, cstart, 0.4);
+  css(code, { y: (1 - kc) * 20, o: phase2 ? kc : Math.min(kc, fade1) });
+  rise($("m-tag"), t, M.r2 + 0.8, 0.7, 20);
+});
+
+// 4. Real screen
+scene("s-screen", 32.0, 40.6, () => { $("v-img").src = "captures/a3-pill.png"; }, (t) => {
+  rise($("v-ch"), t, 0.2); rise($("v-head"), t, 0.4);
+  const shot = $("v-shot");
+  // Browser window 1440x900 at 0.95 scale, then a slow push in on the checklist
+  const w = 1440, h = 938;
+  shot.style.width = w + "px"; shot.style.height = h + "px";
+  shot.style.transformOrigin = "0 0";
+  const kin = P(t, 0.5, 1.1, E.out);
+  const kz = P(t, 3.0, 2.2, E.inOut);
+  const s = lerp(0.82, 1.55, kz);
+  const x = lerp(240, -128, kz), y = lerp(260 + (1 - kin) * 120, 98, kz);
+  shot.style.transform = `translate(${x}px, ${y}px) scale(${s}) perspective(2000px) rotateX(${(1 - kin) * 12}deg)`;
+  shot.style.opacity = kin;
+  for (const id of ["v-ch", "v-head"]) $(id).style.opacity = Math.min(+$(id).style.opacity, 1 - kz);
+  // highlight the Check-in and Medications widgets: measured in the window (browser bar included)
+  const hl = $("v-hl");
+  const kh = P(t, 5.2, 0.5);
+  const bx = 454, by = 221, bw = 496, bh = 206;
+  hl.style.left = x + bx * s - 8 + "px"; hl.style.top = y + by * s - 8 + "px";
+  hl.style.width = bw * s + 16 + "px"; hl.style.height = bh * s + 16 + "px";
+  hl.style.opacity = kh;
+  hl.style.transform = `scale(${lerp(1.06, 1, kh)})`;
+});
+
+// 5. Family asks
+const A = { a: 1.4 };
+scene("s-ask", 40.6, 52.6, () => {
+  const g = D.runs.good.turns.find((x) => /how's/i.test(x.said || ""));
+  A.said = g.said; A.rep = g.reply;
+  A.r = typeEnd(A.said, A.a, 18) + 1.2;
+}, (t) => {
+  rise($("a-ch"), t, 0.2); rise($("a-head"), t, 0.4);
+  const echo = $("a-echo");
+  rise(echo, t, 0.4, 0.8, 40, { s: 0.85 });
+  const speaking = t > A.a && t < A.r + 5;
+  const glow = speaking ? 0.6 + 0.4 * Math.sin(t * 9) : 0.15;
+  echo.querySelector(".glow").style.opacity = glow;
+  echo.querySelector(".ring").style.opacity = 0.35 + glow * 0.65;
+  echo.querySelector(".ring").style.transform = `rotate(${t * 140}deg)`;
+  rise($("a-sarah"), t, 0.6, 0.8, 40);
+  const say = $("a-say");
+  say.classList.add("family");
+  say.style.left = "1010px"; say.style.top = "380px";
+  say.innerHTML = `<small>Sarah</small>` + typed(A.said, t, A.a, 18);
+  rise(say, t, A.a - 0.2, 0.5, 20);
+  const code = $("a-code");
+  code.style.left = "96px"; code.style.top = "330px";
+  code.innerHTML = [`<span class="k">→ tools/call</span> get_status {}`, `<span class="r">← 200 in 14 ms</span>`].filter((_, i) => t > A.r - 0.9 + i * 0.4).join("\n") || " ";
+  css(code, { o: P(t, A.r - 0.9, 0.3) });
+  const rep = $("a-rep");
+  rep.style.left = "96px"; rep.style.top = "520px";
+  rep.innerHTML = `<small>Alexa</small>` + typed(A.rep, t, A.r, 30);
+  rise(rep, t, A.r - 0.2, 0.5, 20);
+  rise($("a-note"), t, typeEnd(A.rep, A.r, 30) + 0.4);
+});
+
+// 6. Missed check-in
+const X = {};
+scene("s-alert", 52.6, 67.4, () => {
+  const c = $("x-clock");
+  c.innerHTML = Array.from({ length: 12 }, (_, i) => `<div class="tick" style="transform:rotate(${i * 30}deg)"></div>`).join("") +
+    '<div class="hand" id="x-h" style="width:10px;height:95px;margin-left:-5px;background:#141c26"></div><div class="hand" id="x-m" style="width:6px;height:140px;margin-left:-3px;background:var(--coral)"></div><div class="dot"></div>';
+  const y = 330;
+  $("x-pipe").innerHTML =
+    wireHTML("x-w1", 820, y + 75, 935, y + 75, "#d6457f") + wireHTML("x-w2", 1050, y + 150, 1050, y + 260, "#f08a24") + wireHTML("x-w3", 1050, y + 410, 1050, y + 500, "#d6457f") + wireHTML("x-w4", 1170, y + 575, 1380, y + 470, "#d6457f") +
+    nodeHTML("x-n1", "clock", "EventBridge", "every 15 minutes", 590, y) +
+    nodeHTML("x-n2", "lambda", "check_missed", "Lambda", 935, y + 0, 230) +
+    nodeHTML("x-n3", "dynamo", "DynamoDB", "no check-in today", 935, y + 260) +
+    nodeHTML("x-n4", "sns", "Amazon SNS", "text + email", 935, y + 500) +
+    '<div class="packet" id="x-p" style="color:#ff5d8f"></div>';
+  const alerts = (D.runs.quiet.alerts || []).map((a) => a.replace(/^\w{3} \d{1,2}:\d{2} [AP]M/, ""));
+  X.alerts = alerts.length ? alerts.reverse() : fallback.runs.quiet.alerts;
+  $("x-notifs").innerHTML = X.alerts.map((a, i) => `<div class="notif" id="x-nt${i}"><div class="app"><i>${ICON.people.replace('stroke-width="3.2"', 'stroke-width="4"')}</i>CareCircle<em>now</em></div><p><b>Check on Mom</b>${esc(a)}</p></div>`).join("");
+}, (t) => {
+  rise($("x-ch"), t, 0.2); rise($("x-head"), t, 0.4);
+  rise($("x-clock"), t, 0.4, 0.8, 40);
+  // Clock runs from 9:20 to 10:00 over 2.4 s, then holds
+  const k = P(t, 0.8, 2.4, E.inOut);
+  const mins = 9 * 60 + 20 + 40 * k;
+  $("x-m").style.transform = `rotate(${(mins % 60) * 6}deg)`;
+  $("x-h").style.transform = `rotate(${(mins / 60) * 30}deg)`;
+  const hh = Math.floor(mins / 60), mm = Math.floor(mins % 60);
+  $("x-time").textContent = `${hh}:${String(mm).padStart(2, "0")}`;
+  $("x-time").style.color = k >= 1 ? "var(--coral)" : "var(--ink)";
+  rise($("x-time"), t, 0.6);
+  const pulse = k >= 1 ? 1 + 0.03 * Math.sin(t * 8) : 1;
+  $("x-clock").style.boxShadow = k >= 1 ? `0 0 ${60 + 30 * Math.sin(t * 6)}px rgba(242,96,63,0.45)` : "";
+  $("x-clock").style.transform += ` scale(${pulse})`;
+  // Services
+  ["x-n1", "x-n2", "x-n3", "x-n4"].forEach((id, i) => rise($(id), t, 3.4 + i * 0.5, 0.6, 30));
+  wire($("x-w1"), t, 3.8); wire($("x-w2"), t, 4.3); wire($("x-w3"), t, 4.8); wire($("x-w4"), t, 5.6);
+  packet($("x-p"), t, 5.2, 2.4, [[820, 405], [935, 405], [1050, 480], [1050, 590], [1050, 830], [1170, 905], [1380, 800]]);
+  rise($("x-phone"), t, 1.0, 1.0, 80);
+  $("x-ptime").textContent = $("x-time").textContent;
+  X.alerts.forEach((_, i) => {
+    const n = $(`x-nt${i}`);
+    const at = 7.5 + i * 1.3;
+    const kk = P(t, at, 0.6, E.back);
+    n.style.top = 280 + i * 150 + "px";
+    css(n, { y: (1 - kk) * -60, s: 0.9 + 0.1 * kk, o: clamp(kk * 1.5) });
+  });
+});
+
+// 7. Weekly summary
+const W = {};
+scene("s-weekly", 67.4, 78.6, () => {
+  const rep = D.runs.good.report || fallback.runs.good.report;
+  const lines = rep.split("\n").filter((l) => l.trim());
+  const [title, ...rest] = lines;
+  const m = title.match(/^(.*?) \((.*)\)$/);
+  W.lines = rest;
+  $("w-doc").innerHTML = `<h4>${esc(m ? m[1] : title)}</h4><div class="range">${esc(m ? m[2].replace(" to ", " → ") : "")}</div>` +
+    rest.map((l, i) => `<div class="line${/:$/.test(l) ? " h" : ""}${/not medical advice/.test(l) ? " fine" : ""}" id="w-l${i}">${esc(l)}</div>`).join("");
+  const pct = rep.match(/\((\d+)%\)/); W.pct = pct ? +pct[1] : 92;
+  const mood = rep.match(/average ([\d.]+) out of 5/); W.mood = mood ? +mood[1] : 3.7;
+  // Sparkline of the seeded week's mood: good days 4, one rough day 2
+  W.spark = [4, 4, 2, 4, 4, 4];
+  const svg = $("w-spark");
+  const pts = W.spark.map((v, i) => [20 + i * 108, 100 - (v - 1) * 26]);
+  svg.innerHTML = `<polyline id="w-poly" fill="none" stroke="#7c5cf0" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" points="${pts.map((p) => p.join(",")).join(" ")}"/>` +
+    pts.map((p, i) => `<circle id="w-c${i}" cx="${p[0]}" cy="${p[1]}" r="9" fill="${W.spark[i] < 3 ? "#f2603f" : "#7c5cf0"}"/>`).join("") +
+    `<text id="w-fri" x="${pts[2][0]}" y="${pts[2][1] + 30}" fill="#f2603f" font-size="18" text-anchor="middle" font-family="Inter">Friday: dizzy</text>`;
+  const poly = $("w-poly"); W.len = poly.getTotalLength(); poly.style.strokeDasharray = W.len;
+}, (t) => {
+  rise($("w-ch"), t, 0.2); rise($("w-head"), t, 0.4);
+  rise($("w-doc"), t, 0.6, 0.9, 60);
+  W.lines.forEach((_, i) => { const el = $(`w-l${i}`); const k = P(t, 1.2 + i * 0.32, 0.4); css(el, { x: (1 - k) * 16, o: k }); });
+  rise($("w-s1"), t, 1.4); rise($("w-s2"), t, 1.7); rise($("w-s3"), t, 2.0);
+  const k1 = P(t, 1.6, 1.6);
+  $("w-v1").textContent = Math.round(W.pct * k1) + "%"; $("w-m1").style.width = W.pct * k1 + "%";
+  const k2 = P(t, 1.9, 1.6);
+  $("w-v2").textContent = `${Math.round(7 * k2)}/7`; $("w-m2").style.width = 100 * k2 + "%";
+  const k3 = P(t, 2.2, 1.8);
+  $("w-v3").textContent = `Mood ${(W.mood * k3).toFixed(1)} / 5`;
+  $("w-poly").style.strokeDashoffset = W.len * (1 - P(t, 2.4, 1.6, E.inOut));
+  W.spark.forEach((_, i) => { const c = $(`w-c${i}`); c.style.opacity = P(t, 2.4 + i * 0.27, 0.2); });
+  $("w-fri").style.opacity = P(t, 3.6, 0.4);
+  rise($("w-tag"), t, 4.6);
+});
+
+// 8. Architecture
+scene("s-arch", 78.6, 90.6, () => {
+  const n = (...a) => nodeHTML(...a);
+  // Layout (node centers): left column people, then Alexa, MCP server center, data/services right
+  $("r-diagram").innerHTML =
+    wireHTML("r-w1", 330, 460, 420, 460, "#31c3ff") + wireHTML("r-w2", 330, 740, 420, 740, "#8ea6b2") +
+    wireHTML("r-w3", 650, 460, 790, 545, "#31c3ff") + wireHTML("r-w4", 650, 740, 790, 590, "#8ea6b2") +
+    wireHTML("r-w5", 1070, 565, 1210, 460, "#3b6cf6") + wireHTML("r-w6", 1070, 565, 1210, 770, "#7c5cf0") +
+    wireHTML("r-w7", 1440, 230, 1580, 230, "#d6457f") + wireHTML("r-w8", 1325, 318, 1325, 378, "#d6457f") +
+    wireHTML("r-w10", 1695, 318, 1695, 618, "#d6457f") +
+    n("r-mom", "people", "Mom + family", "voice", 100, 380) +
+    n("r-web", "web", "Family web view", "and the simulated Alexa", 100, 660) +
+    n("r-alexa", "alexa", "Alexa+", "MCP Toolkit", 420, 380) +
+    n("r-sim", "alexa", "Simulated Alexa", "rules or Claude", 420, 660) +
+    `<div class="node" id="r-mcp" style="left:790px;top:470px;width:280px;border-color:rgba(242,96,63,0.6);box-shadow:0 0 0 4px rgba(242,96,63,0.15),0 24px 60px rgba(20,28,38,0.14)"><div class="ic" style="background:${COL.lambda}">${ICON.lambda}</div><b>CareCircle MCP server</b><span>Lambda + Function URL<br>Streamable HTTP · 8 tools</span></div>` +
+    n("r-ddb", "dynamo", "DynamoDB", "events, reminders, alerts", 1210, 380) +
+    n("r-bed", "bedrock", "Bedrock", "Claude summaries", 1210, 690) +
+    n("r-eb", "clock", "EventBridge", "every 15 min", 1210, 150) +
+    n("r-sns", "sns", "SNS", "text + email", 1580, 150) +
+    n("r-fam", "phone", "Family phones", "check on Mom", 1580, 620) +
+    '<div class="packet" id="r-pa" style="color:#31c3ff"></div><div class="packet" id="r-pb" style="color:#ff5d8f"></div><div class="packet" id="r-pc" style="color:#a78bfa"></div>' +
+    ["log_checkin", "add_reminder", "list_today", "get_status", "get_timeline", "check_missed", "notify_family", "weekly_summary"]
+      .map((x, i) => `<div class="tool mono" id="r-t${i}" style="left:${430 + (i % 4) * 235}px;top:${870 + Math.floor(i / 4) * 52}px">${x}</div>`).join("");
+}, (t) => {
+  rise($("r-ch"), t, 0.2); rise($("r-head"), t, 0.4);
+  const order = [["r-mom", 0.8], ["r-web", 1.0], ["r-alexa", 1.3], ["r-sim", 1.5], ["r-mcp", 1.9], ["r-ddb", 2.4], ["r-bed", 2.6], ["r-eb", 3.0], ["r-sns", 3.3], ["r-fam", 3.6]];
+  order.forEach(([id, a]) => { const k = P(t, a, 0.6, E.back); css($(id), { s: 0.8 + 0.2 * k, o: clamp(k * 1.4) }); });
+  [["r-w1", 1.2], ["r-w2", 1.4], ["r-w3", 1.8], ["r-w4", 2.0], ["r-w5", 2.4], ["r-w6", 2.6], ["r-w8", 3.2], ["r-w7", 3.4], ["r-w10", 3.7]].forEach(([id, a]) => wire($(id), t, a));
+  for (let i = 0; i < 8; i++) rise($(`r-t${i}`), t, 4.2 + i * 0.12, 0.5, 16);
+  // looping data packets
+  const loop = (a, period) => (t < a ? -1 : a + ((t - a) % period));
+  packet($("r-pa"), t, loop(4.4, 2.6), 1.6, [[330, 460], [650, 460], [790, 545], [1070, 565], [1210, 460]]);
+  packet($("r-pb"), t, loop(5.2, 2.6), 1.6, [[1325, 378], [1325, 318], [1440, 230], [1580, 230], [1695, 318], [1695, 618]]);
+  packet($("r-pc"), t, loop(5.8, 2.6), 1.2, [[930, 565], [1070, 565], [1210, 770]]);
+});
+
+// 9. Outro
+scene("s-outro", 90.6, 97, () => {
+  buildLogo($("o-logo"));
+  $("o-chips").innerHTML = ["Model Context Protocol", "AWS Lambda", "DynamoDB", "EventBridge", "SNS", "Bedrock (Claude)", "TypeScript"]
+    .map((c, i) => `<span class="tag" id="o-c${i}" style="position:relative;display:inline-block;margin:0 8px 14px">${c}</span>`).join("");
+}, (t) => {
+  logo($("o-logo"), t, 0.1, 0.25);
+  rise($("o-word"), t, 0.6, 0.8, 40);
+  rise($("o-sub"), t, 1.0);
+  for (let i = 0; i < 7; i++) rise($(`o-c${i}`), t, 1.5 + i * 0.1, 0.5, 14);
+  rise($("o-url"), t, 2.4);
+});
+
+const TOTAL = 97;
+const FADE = 0.6;
+
+// ---------- seek ----------
+function seek(t) {
+  // background drift
+  css($("b1"), { x: 100 + Math.sin(t * 0.21) * 260, y: -200 + Math.cos(t * 0.17) * 160 });
+  css($("b2"), { x: 1100 + Math.cos(t * 0.19) * 240, y: 400 + Math.sin(t * 0.23) * 180 });
+  css($("b3"), { x: 600 + Math.sin(t * 0.13 + 2) * 300, y: 500 + Math.cos(t * 0.11) * 200 });
+  $("b1").style.opacity = 0.6; $("b2").style.opacity = 0.6; $("b3").style.opacity = 0.55;
+  $("grid").style.transform = `translate(${(t * 6) % 36}px, ${(t * 3) % 36}px)`;
+  for (const s of S) {
+    const on = t >= s.start - 0.001 && t < s.end + FADE;
+    s.el.style.display = on ? "block" : "none";
+    if (!on) continue;
+    const fin = clamp((t - s.start) / FADE), fout = 1 - clamp((t - s.end) / FADE);
+    s.el.style.opacity = s.start === 0 ? fout : Math.min(fin, fout);
+    s.el.style.transform = `scale(${1 + 0.02 * (1 - fout)})`;
+    s.render(t - s.start);
+  }
+  $("progress").style.width = (t / TOTAL) * 100 + "%";
+}
+
+// Cue points for the soundtrack (Alexa chimes, alert pings, transitions).
+function cues() {
+  const c = [];
+  S.forEach((s) => s.start > 0 && c.push({ type: "whoosh", t: s.start - 0.2 }));
+  const m = S[2].start; c.push({ type: "alexa", t: m + M.r1 - 0.3 }, { type: "alexa", t: m + M.r2 - 0.3 });
+  c.push({ type: "alexa", t: S[4].start + A.r - 0.3 });
+  X.alerts.forEach((_, i) => c.push({ type: "alert", t: S[5].start + 7.5 + i * 1.3 }));
+  return c;
+}
+
+async function init() {
+  try { D = await (await fetch("captures/data.json")).json(); } catch { D = fallback; }
+  for (const s of S) if (s.build) s.build();
+  await document.fonts.ready;
+  await Promise.all([...document.images].map((im) => (im.complete ? 0 : new Promise((r) => (im.onload = im.onerror = r)))));
+  window.TOTAL = TOTAL;
+  window.seek = seek;
+  window.cues = cues;
+  window.ready = true;
+  seek(0);
+  if (!location.search.includes("render")) play();
+}
+
+function play() {
+  const fit = () => { const k = Math.min(innerWidth / 1920, innerHeight / 1080); $("stage").style.transform = `scale(${k})`; };
+  fit(); addEventListener("resize", fit);
+  let t = Number(new URLSearchParams(location.search).get("t") || 0), paused = false, last = performance.now();
+  addEventListener("keydown", (e) => {
+    if (e.key === " ") paused = !paused;
+    if (e.key === "ArrowRight") t += 2;
+    if (e.key === "ArrowLeft") t = Math.max(0, t - 2);
+  });
+  const tick = (now) => { if (!paused) t = (t + (now - last) / 1000) % TOTAL; last = now; seek(t); requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+init();
+</script>
+</body>
+</html>
