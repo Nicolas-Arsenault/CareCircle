@@ -38,7 +38,7 @@
   .kicker i { font-size: 30px; }
   .headline { position: absolute; left: 120px; top: 140px; font-size: 76px; font-weight: 700; letter-spacing: -0.035em; line-height: 1.05; }
   .headline span, .words span { display: inline-block; white-space: pre; }
-  .caption { position: absolute; left: 120px; bottom: 90px; font-size: 32px; color: var(--muted); font-weight: 500; letter-spacing: -0.01em; }
+  .caption { position: absolute; left: 120px; bottom: 130px; font-size: 32px; color: var(--muted); font-weight: 500; letter-spacing: -0.01em; }
   .caption b { color: var(--ink); font-weight: 650; }
   .card { background: var(--surface); border-radius: 32px; box-shadow: 0 30px 60px -30px rgb(20 30 50 / .35), 0 2px 6px rgb(20 30 50 / .06); }
   .mark { width: 168px; height: 168px; border-radius: 44px; background: var(--med); display: grid; place-items: center; color: #fff; font-size: 104px; box-shadow: 0 30px 60px -20px rgb(255 106 85 / .6); }
@@ -85,7 +85,6 @@
   <div class="blob" id="b3" style="width:760px;height:760px;background:var(--sky)"></div>
   <div class="blob" id="b4" style="width:600px;height:600px;background:var(--leaf)"></div>
   <div class="abs" id="veil" style="inset:0;background:rgb(238 241 245 / .62)"></div>
-  <div class="abs" id="dark" style="inset:0;background:#0b1424;opacity:0"></div>
 
   <!-- 1. Title -->
   <section class="scene" id="s1">
@@ -183,20 +182,30 @@
 
   <!-- 6. Missed dose -->
   <section class="scene" id="s6">
-    <div class="kicker"><i class="ph ph-moon-stars"></i>Evening</div>
+    <div class="kicker"><i class="ph ph-moon-stars"></i>That evening</div>
     <div class="headline words" id="s6-h"></div>
-    <div class="abs card" style="left:120px;top:330px;width:560px;height:430px;padding:40px">
-      <div style="font-size:24px;color:var(--muted);font-weight:600">MOM’S TIME</div>
-      <div class="mono" id="s6-clock" style="font-size:110px;font-weight:700;letter-spacing:-0.05em">8:00 PM</div>
-      <div id="s6-dose" style="margin-top:34px;display:flex;align-items:center;gap:18px;padding:22px 26px;border-radius:24px;background:var(--sun-bg);color:var(--sun-ink);font-size:30px;font-weight:600">
-        <i class="ph-fill ph-pill" style="font-size:40px"></i>Lisinopril · 8 PM<span id="s6-st" class="mono" style="margin-left:auto;font-size:22px">due</span>
-      </div>
+
+    <div class="abs card" id="s6-card" style="left:120px;top:320px;width:1080px;height:270px">
+      <div class="abs" style="left:44px;top:36px;font:600 22px var(--mono);color:var(--muted);letter-spacing:.04em">MOM’S EVENING</div>
+      <div class="abs mono" id="s6-clock" style="right:44px;top:22px;font-size:54px;font-weight:700;letter-spacing:-0.04em">7:45 PM</div>
+      <div class="abs" id="s6-grace" style="left:307px;top:150px;width:549px;height:24px;border-radius:12px;background:var(--sun-bg)"></div>
+      <div class="abs" style="left:60px;top:160px;width:960px;height:4px;border-radius:2px;background:#e2e6ee"></div>
+      <div class="abs" id="s6-fill" style="left:60px;top:160px;width:0;height:4px;border-radius:2px;background:var(--ink)"></div>
+      <div class="abs" style="left:307px;top:110px;transform:translateX(-50%);font-size:22px;font-weight:600;color:var(--sun-ink);white-space:nowrap"><i class="ph-fill ph-pill"></i> Lisinopril due</div>
+      <div class="abs" id="s6-gl" style="left:581px;top:186px;transform:translateX(-50%);font:500 19px var(--mono);color:var(--sun-ink);white-space:nowrap">60 min grace</div>
+      <div class="abs mono" style="left:307px;top:222px;transform:translateX(-50%);font-size:20px;color:var(--muted)">8 PM</div>
+      <div class="abs mono" style="left:856px;top:222px;transform:translateX(-50%);font-size:20px;color:var(--muted)">9 PM</div>
+      <div class="abs" id="s6-miss" style="left:856px;top:96px;transform:translateX(-50%)"><span style="display:inline-flex;align-items:center;gap:8px;background:var(--med);color:#fff;font-size:22px;font-weight:650;padding:6px 16px;border-radius:999px;white-space:nowrap"><i class="ph-fill ph-warning-circle"></i>not confirmed</span></div>
+      <div class="abs" id="s6-head" style="left:60px;top:148px;width:28px;height:28px;margin-left:-14px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 7px rgb(24 32 45 / .12)"></div>
     </div>
-    <div class="node" id="s6-n1" style="left:760px;top:300px;width:330px;height:150px;flex-direction:row;gap:20px"><div class="ic" style="background:var(--pink)"><i class="ph-fill ph-timer"></i></div><div>EventBridge<br><small>every 15 minutes</small></div></div>
-    <div class="node" id="s6-n2" style="left:760px;top:490px;width:330px;height:150px;flex-direction:row;gap:20px"><div class="ic" style="background:var(--aws);color:#1a1205;font-weight:900">λ</div><div>MissedCheckins<br><small>finds 1 missed dose</small></div></div>
-    <div class="node" id="s6-n3" style="left:760px;top:680px;width:330px;height:150px;flex-direction:row;gap:20px"><div class="ic" style="background:#f472b6"><i class="ph-fill ph-paper-plane-tilt"></i></div><div>Amazon SNS<br><small>text the family</small></div></div>
-    <div class="abs" id="s6-pulse" style="left:800px;top:340px;width:82px;height:82px;border-radius:22px;border:4px solid var(--pink)"></div>
-    <div class="abs phone" id="s6-phone" style="left:1300px;top:150px">
+
+    <div class="node" id="s6-n1" style="left:120px;top:660px;width:300px;height:132px;flex-direction:row;gap:18px;font-size:26px"><div class="ic" style="background:var(--pink)"><i class="ph-fill ph-timer"></i></div><div>EventBridge<br><small>every 15 min</small></div></div>
+    <div class="wire" id="s6-t1" style="left:420px;top:723px;width:90px"><div id="s6-w1"></div></div>
+    <div class="node" id="s6-n2" style="left:510px;top:660px;width:330px;height:132px;flex-direction:row;gap:18px;font-size:26px"><div class="ic" style="background:var(--aws);color:#1a1205;font-weight:900">λ</div><div>MissedCheckins<br><small>finds 1 missed dose</small></div></div>
+    <div class="wire" id="s6-t2" style="left:840px;top:723px;width:90px"><div id="s6-w2"></div></div>
+    <div class="node" id="s6-n3" style="left:930px;top:660px;width:270px;height:132px;flex-direction:row;gap:18px;font-size:26px"><div class="ic" style="background:#f472b6"><i class="ph-fill ph-paper-plane-tilt"></i></div><div>Amazon SNS<br><small>texts Sarah</small></div></div>
+
+    <div class="abs phone" id="s6-phone" style="left:1360px;top:150px;transform-origin:top left">
       <div class="screen">
         <div class="abs" style="left:0;right:0;top:90px;text-align:center;font-size:96px;font-weight:300;letter-spacing:-0.03em">9:15</div>
         <div class="abs" style="left:0;right:0;top:200px;text-align:center;font-size:22px;opacity:.8">Tuesday, October 13</div>
@@ -227,16 +236,16 @@
 
   <!-- 8. Architecture -->
   <section class="scene" id="s8">
-    <img id="s8-img" src="../images/architecture.svg" class="abs" style="left:80px;top:70px;width:1760px;height:1034px" alt="">
+    <div class="abs card" id="s8-card" style="left:220px;top:40px;width:1480px;height:1000px;overflow:hidden"><img id="s8-img" src="../images/architecture.svg" style="width:1480px;height:980px;margin-top:10px" alt=""></div>
   </section>
 
   <!-- 9. End card -->
-  <section class="scene" id="s9" style="color:#eef3ff">
+  <section class="scene" id="s9">
     <div class="abs" style="left:0;right:0;top:250px;display:flex;flex-direction:column;align-items:center;gap:40px">
       <div class="mark" id="s9-mark"><i class="ph-fill ph-hand-heart"></i></div>
       <div id="s9-title" style="font-size:130px;font-weight:750;letter-spacing:-0.05em;line-height:1">CareCircle</div>
       <div id="s9-stack" style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:1500px"></div>
-      <div id="s9-url" class="mono" style="font-size:30px;color:#9fb0d0">github.com/Nicolas-Arsenault/CareCircle · MIT</div>
+      <div id="s9-url" class="mono" style="font-size:30px;color:var(--muted)">github.com/Nicolas-Arsenault/CareCircle · MIT</div>
     </div>
   </section>
 </div>
@@ -297,7 +306,7 @@ const h5 = words("s5-h", "Sarah asks how Mom is doing.");
 const h6 = words("s6-h", "It notices what didn’t happen.");
 const h7 = words("s7-h", "One page for the doctor.");
 $("s9-stack").innerHTML = ["Alexa+ MCP Toolkit", "MCP 2025-11-25", "Streamable HTTP", "AWS Lambda", "DynamoDB", "EventBridge", "Amazon SNS", "Amazon Bedrock", "AWS CDK"]
-  .map((s) => `<span class="pill" style="background:#16213a;color:#dfe8ff;box-shadow:none;border:1px solid #2a3a5c">${s}</span>`).join("");
+  .map((s) => `<span class="pill">${s}</span>`).join("");
 const SUMMARY = [
   "Weekly care summary for Mom (Oct 7 to Oct 13)",
   "",
@@ -372,20 +381,26 @@ const draw = {
   },
   s6(t) {
     h6(t, .2);
-    // Clock runs 8:00 PM -> 9:15 PM.
-    const mins = Math.round(lerp(0, 75, P(t, .8, 2.4, ease.inOut)));
-    const hh = 8 + Math.floor(mins / 60), mm = mins % 60;
+    const pc = P(t, .5, .9); set("s6-card", { o: pc, y: (1 - pc) * 60 });
+    // Playhead runs 7:45 PM -> 9:15 PM along a 7:45-9:30 track.
+    const mins = lerp(0, 90, P(t, 1.1, 3.2, ease.inOut));
+    const x = 60 + (mins / 105) * 960;
+    $("s6-head").style.left = `${x}px`;
+    $("s6-fill").style.width = `${x - 60}px`;
+    const m = Math.round(mins) + 45, hh = 7 + Math.floor(m / 60), mm = m % 60;
     $("s6-clock").textContent = `${hh}:${String(mm).padStart(2, "0")} PM`;
-    const late = mins >= 60;
-    $("s6-dose").style.background = late ? "var(--med-bg)" : "var(--sun-bg)";
-    $("s6-dose").style.color = late ? "var(--med-ink)" : "var(--sun-ink)";
-    $("s6-st").textContent = late ? "missed" : mins > 0 ? "waiting…" : "due";
-    pop("s6-n1", t, 2.6); pop("s6-n2", t, 3.4); pop("s6-n3", t, 4.1);
-    const pulse = ((t - 2.8) % 1) / 1;
-    set("s6-pulse", { o: t > 2.8 && t < 5 ? (1 - pulse) * .9 : 0, s: 1 + pulse * .8 });
-    const ph = P(t, .6, 1); set("s6-phone", { o: ph, x: (1 - ph) * 140 });
-    const pn = P(t, 4.8, .8, ease.back); set("s6-notif", { o: clamp(pn * 1.5), y: (1 - pn) * -120, s: lerp(.9, 1, pn) });
-    rise("s6-c", t, 6.2);
+    const pg = P(t, 1.6, .6); $("s6-grace").style.opacity = pg; $("s6-gl").style.opacity = pg;
+    pop("s6-miss", t, 3.75, .6);
+    $("s6-head").style.background = mins >= 75 ? "var(--med)" : "var(--ink)";
+    pop("s6-n1", t, 4.2, .6);
+    $("s6-t1").style.opacity = P(t, 4.4, .3); $("s6-t2").style.opacity = P(t, 5.1, .3);
+    $("s6-w1").style.width = `${P(t, 4.6, .4, ease.inOut) * 100}%`;
+    pop("s6-n2", t, 4.9, .6);
+    $("s6-w2").style.width = `${P(t, 5.3, .4, ease.inOut) * 100}%`;
+    pop("s6-n3", t, 5.6, .6);
+    const ph = P(t, .7, 1); set("s6-phone", { o: ph, x: (1 - ph) * 140, s: .95 });
+    const pn = P(t, 6.1, .8, ease.back); set("s6-notif", { o: clamp(pn * 1.5), y: (1 - pn) * -120, s: lerp(.9, 1, pn) });
+    rise("s6-c", t, 6.9);
   },
   s7(t) {
     h7(t, .2);
@@ -394,9 +409,10 @@ const draw = {
     [...$("s7-lines").children].forEach((l, i) => { const p = P(t, 1.6 + i * .22, .5); set(l, { o: p, x: (1 - p) * -20 }); });
   },
   s8(t) {
-    const p = P(t, .1, 1.4, ease.inOut);
-    $("s8-img").style.clipPath = `inset(0 ${(1 - p) * 100}% 0 0 round 24px)`;
-    set("s8-img", { s: lerp(1.0, 1.035, clamp(t / 6.8)), o: 1 });
+    const pc = P(t, .1, .8); set("s8-card", { o: pc, y: (1 - pc) * 60, s: lerp(.97, 1, pc) });
+    const p = P(t, .5, 1.6, ease.inOut);
+    $("s8-img").style.clipPath = `inset(0 ${(1 - p) * 100}% 0 0)`;
+    set("s8-img", { s: lerp(1.0, 1.03, clamp(t / 6.8)), o: 1 });
   },
   s9(t) {
     pop("s9-mark", t, .2);
@@ -412,8 +428,6 @@ function seek(t) {
   set("b2", { x: 1250 + 140 * Math.cos(t * .19), y: -160 + 90 * Math.sin(t * .23), o: .45 });
   set("b3", { x: 1100 + 160 * Math.sin(t * .15), y: 560 + 70 * Math.cos(t * .2), o: .45 });
   set("b4", { x: -160 + 120 * Math.cos(t * .18), y: 620 + 90 * Math.sin(t * .14), o: .45 });
-  // Dark backdrop for the architecture and end card.
-  $("dark").style.opacity = P(t, 53.6, .8, ease.inOut);
   for (const sc of scenes) {
     const el = $(sc.id);
     const fadeIn = clamp((t - sc.a) / .4), fadeOut = clamp((sc.b - t) / .4);
