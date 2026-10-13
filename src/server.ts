@@ -1,0 +1,119 @@
+import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import express, { type Request, type Response, type NextFunction } from "express";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { loadConfig, type Config } from "./config.js";
+import { createCare } from "./app.js";
+import { createMcpServer } from "./mcp.js";
+import type { CareService } from "./care.js";
+import { AlexaSimulator } from "./alexa/simulator.js";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const WEB_DIR = join(here, "..", "web");
+
+/** Builds the HTTP app: the MCP endpoint, a small JSON API for the family page, and the simulator. */
+export function createHttpApp(config: Config, care: CareService, simulator?: AlexaSimulator): express.Express {
+  const allowedHosts = (process.env.ALLOWED_HOSTS ?? "").split(",").filter(Boolean);
+  const app = createMcpExpressApp({
+    host: config.host,
+    ...(allowedHosts.length ? { allowedHosts } : {}),
+  });
+
+  const requireToken = (req: Request, res: Response, next: NextFunction) => {
+    if (!config.mcpAuthToken || req.headers.authorization === `Bearer ${config.mcpAuthToken}`) return next();
+    res.status(401).json({ jsonrpc: "2.0", error: { code: -32001, message: "Unauthorized" }, id: null });
+  };
+
+  // Stateless Streamable HTTP: a fresh server and transport per request, so it scales
+  // horizontally and runs unchanged on Lambda.
+  app.post("/mcp", requireToken, async (req, res) => {
+    const server = createMcpServer(care, { timeZone: config.timeZone });
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+    res.on("close", () => {
+      void transport.close();
+      void server.close();
+    });
+    try {
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+    } catch (err) {
+      console.error("[mcp] request failed:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: "Internal server error" }, id: null });
+      }
+    }
+  });
+  const notAllowed = (_req: Request, res: Response) => {
+    res.status(405).set("Allow", "POST").json({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed." }, id: null });
+  };
+  app.get("/mcp", notAllowed);
+  app.delete("/mcp", notAllowed);
+
+  // JSON API used by the family page.
+  const api = express.Router();
+  const wrap = (fn: (req: Request) => Promise<unknown>) => async (req: Request, res: Response) => {
+    try {
+      res.json(await fn(req));
+    } catch (err) {
+      res.status(400).json({ error: (err as Error).message });
+    }
+  };
+  api.get("/config", wrap(async () => ({ parentName: config.parentName, timeZone: config.timeZone, brain: simulator ? process.env.ALEXA_BRAIN ?? "rules" : null })));
+  api.get("/status", wrap(() => care.getStatus()));
+  api.get("/today", wrap(() => care.listToday()));
+  api.get("/upcoming", wrap(() => care.upcoming()));
+  api.get("/timeline", wrap((req) => care.getTimeline(Number(req.query.days ?? 7))));
+  api.post("/check", wrap(() => care.runAlertCheck()));
+  api.get("/weekly", wrap(() => care.weeklySummary()));
+  if (simulator) {
+    api.post(
+      "/alexa",
+      wrap(async (req) => {
+        const { utterance, speaker } = req.body ?? {};
+        if (typeof utterance !== "string" || !utterance.trim()) throw new Error("Say something first.");
+        return simulator.handle(utterance.trim(), typeof speaker === "string" ? speaker : undefined);
+      }),
+    );
+  }
+  app.use("/api", api);
+  app.get("/healthz", (_req, res) => {
+    res.json({ ok: true });
+  });
+  app.use(express.static(WEB_DIR));
+  return app;
+}
+
+async function main(): Promise<void> {
+  const config = loadConfig();
+  const care = createCare(config);
+  const simulator = new AlexaSimulator({
+    mcpUrl: process.env.MCP_URL ?? `http://127.0.0.1:${config.port}/mcp`,
+    authToken: config.mcpAuthToken,
+    parentName: config.parentName,
+    timeZone: config.timeZone,
+    brain: process.env.ALEXA_BRAIN === "bedrock" ? "bedrock" : "rules",
+    bedrockModel: config.bedrockModel,
+    awsRegion: config.awsRegion,
+  });
+  const app = createHttpApp(config, care, simulator);
+
+  app.listen(config.port, config.host, () => {
+    console.log(`CareCircle is running.
+  MCP endpoint:   http://${config.host}:${config.port}/mcp
+  Family page:    http://${config.host}:${config.port}/
+  Storage: ${config.store}   Summaries: ${config.summarizer}   Alerts: ${config.notifier}`);
+  });
+
+  // Locally, check for missed check-ins every few minutes. On AWS, EventBridge does this.
+  const minutes = Number(process.env.ALERT_CHECK_MINUTES ?? "5");
+  if (minutes > 0) {
+    setInterval(() => {
+      care.runAlertCheck().catch((err) => console.error("[alerts] check failed:", err));
+    }, minutes * 60_000).unref();
+  }
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  void main();
+}
