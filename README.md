@@ -58,7 +58,7 @@ Then open <http://127.0.0.1:3000>. You get:
 - **Page API:** besides the endpoints above, the page polls `GET /api/week` (doses per day, events and missed check-in days for the last 7 days; no AI call, so it stays cheap with `SUMMARIZER=bedrock`).
 - **The top bar** shows which backends are active (data store, summaries, alerts, how Alexa understands speech), read from `GET /api/config`.
 
-The page follows your system light or dark setting and honours reduced-motion. Fonts (Geist) and icons (Phosphor) are served from local npm packages under `/vendor/*`, so the demo needs no internet connection.
+The page always uses its light theme (it ignores the system dark-mode setting) and honours reduced-motion. Fonts (Geist) and icons (Phosphor) are served from local npm packages under `/vendor/*`, so the demo needs no internet connection.
 
 By default the simulator understands speech with simple offline rules (`src/alexa/rules.ts`). Set `ALEXA_BRAIN=bedrock` to let Claude on Bedrock pick the tools instead.
 
