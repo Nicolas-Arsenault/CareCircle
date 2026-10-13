@@ -45,6 +45,25 @@ Then open <http://127.0.0.1:3000>. You get:
 
 By default the simulator understands speech with simple offline rules (`src/alexa/rules.ts`). Set `ALEXA_BRAIN=bedrock` to let Claude on Bedrock pick the tools instead.
 
+### Emulated AWS, still on your machine
+
+If you have no AWS account, or one whose plan blocks these services, run the AWS version of the app locally:
+
+```bash
+npm run aws:local            # add -- --seed to reset the demo data
+```
+
+This runs the same code paths as the real deployment, with nothing to install beyond `npm install`:
+
+| AWS service | Emulated by |
+|---|---|
+| DynamoDB | [dynalite](https://github.com/architect/dynalite), a DynamoDB-compatible server (data in `data/dynamodb`) |
+| Lambda + Function URL | the real handler in `src/lambda/mcp.ts`, behind a local Function URL on port 3001 |
+| EventBridge | the real `src/lambda/checker.ts`, run every minute |
+| SNS | alerts printed in the terminal and listed on the dashboard |
+
+The simulated Alexa goes through the emulated Function URL, and the dashboard's **Behind the scenes** card shows each Lambda invocation, scheduled run and alert as it happens.
+
 ### Talk to the MCP server directly
 
 The endpoint is `http://127.0.0.1:3000/mcp`. With [MCP Inspector](https://github.com/modelcontextprotocol/inspector):

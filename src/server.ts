@@ -8,12 +8,18 @@ import { createCare } from "./app.js";
 import { createMcpServer } from "./mcp.js";
 import type { CareService } from "./care.js";
 import { AlexaSimulator } from "./alexa/simulator.js";
+import { recentActivity } from "./activity.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const WEB_DIR = join(here, "..", "web");
 
 /** Builds the HTTP app: the MCP endpoint, a small JSON API for the family page, and the simulator. */
-export function createHttpApp(config: Config, care: CareService, simulator?: AlexaSimulator): express.Express {
+export function createHttpApp(
+  config: Config,
+  care: CareService,
+  simulator?: AlexaSimulator,
+  environment?: Record<string, string>,
+): express.Express {
   const allowedHosts = (process.env.ALLOWED_HOSTS ?? "").split(",").filter(Boolean);
   const app = createMcpExpressApp({
     host: config.host,
@@ -59,8 +65,17 @@ export function createHttpApp(config: Config, care: CareService, simulator?: Ale
       res.status(400).json({ error: (err as Error).message });
     }
   };
-  api.get("/config", wrap(async () => ({ parentName: config.parentName, timeZone: config.timeZone, brain: simulator ? process.env.ALEXA_BRAIN ?? "rules" : null })));
+  api.get(
+    "/config",
+    wrap(async () => ({
+      parentName: config.parentName,
+      timeZone: config.timeZone,
+      brain: simulator ? process.env.ALEXA_BRAIN ?? "rules" : null,
+      environment: environment ?? null,
+    })),
+  );
   api.get("/status", wrap(() => care.getStatus()));
+  api.get("/activity", wrap(async () => recentActivity()));
   api.get("/today", wrap(() => care.listToday()));
   api.get("/upcoming", wrap(() => care.upcoming()));
   api.get("/timeline", wrap((req) => care.getTimeline(Number(req.query.days ?? 7))));
@@ -84,11 +99,20 @@ export function createHttpApp(config: Config, care: CareService, simulator?: Ale
   return app;
 }
 
-async function main(): Promise<void> {
-  const config = loadConfig();
+export interface StartOptions {
+  /** Where the simulated Alexa sends MCP requests. Defaults to this server's own /mcp. */
+  mcpUrl?: string;
+  /** How often to check for missed check-ins, in minutes. 0 turns it off. */
+  alertCheckMinutes?: number;
+  /** Describes the emulated AWS environment for the dashboard, when running `npm run aws:local`. */
+  environment?: Record<string, string>;
+}
+
+/** Starts the local server: MCP endpoint, family page and simulated Alexa. */
+export async function startServer(config: Config, opts: StartOptions = {}): Promise<void> {
   const care = createCare(config);
   const simulator = new AlexaSimulator({
-    mcpUrl: process.env.MCP_URL ?? `http://127.0.0.1:${config.port}/mcp`,
+    mcpUrl: opts.mcpUrl ?? process.env.MCP_URL ?? `http://127.0.0.1:${config.port}/mcp`,
     authToken: config.mcpAuthToken,
     parentName: config.parentName,
     timeZone: config.timeZone,
@@ -96,17 +120,20 @@ async function main(): Promise<void> {
     bedrockModel: config.bedrockModel,
     awsRegion: config.awsRegion,
   });
-  const app = createHttpApp(config, care, simulator);
+  const app = createHttpApp(config, care, simulator, opts.environment);
 
-  app.listen(config.port, config.host, () => {
-    console.log(`CareCircle is running.
+  await new Promise<void>((resolve) => {
+    app.listen(config.port, config.host, () => {
+      console.log(`CareCircle is running.
   MCP endpoint:   http://${config.host}:${config.port}/mcp
   Family page:    http://${config.host}:${config.port}/
   Storage: ${config.store}   Summaries: ${config.summarizer}   Alerts: ${config.notifier}`);
+      resolve();
+    });
   });
 
   // Locally, check for missed check-ins every few minutes. On AWS, EventBridge does this.
-  const minutes = Number(process.env.ALERT_CHECK_MINUTES ?? "5");
+  const minutes = opts.alertCheckMinutes ?? Number(process.env.ALERT_CHECK_MINUTES ?? "5");
   if (minutes > 0) {
     setInterval(() => {
       care.runAlertCheck().catch((err) => console.error("[alerts] check failed:", err));
@@ -115,5 +142,5 @@ async function main(): Promise<void> {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  void main();
+  void startServer(loadConfig());
 }

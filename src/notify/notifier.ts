@@ -1,4 +1,5 @@
 import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
+import { record } from "../activity.js";
 
 /** Delivers a message to the family. */
 export interface Notifier {
@@ -9,6 +10,7 @@ export interface Notifier {
 export class ConsoleNotifier implements Notifier {
   async send(subject: string, message: string): Promise<void> {
     console.log(`[notify] ${subject}: ${message}`);
+    record("Alert", `${subject}: ${message}`);
   }
 }
 
