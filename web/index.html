@@ -34,18 +34,6 @@
     --ease: cubic-bezier(.16, 1, .3, 1);
     color-scheme: light;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0c1017; --surface: #151b25; --ink: #eef2f8; --muted: #9aa4b5; --line: #232c3a;
-      --med-bg: #3a1c19; --med-ink: #ff9a8a;
-      --sun-bg: #3a2c0c; --sun-ink: #ffd27a;
-      --sky-bg: #12283f; --sky-ink: #8cc4ff;
-      --leaf-bg: #10301f; --leaf-ink: #7fe0a8;
-      --teal-bg: #0f2f2d; --teal-ink: #6fe0d6;
-      --dark: #232c3b; --device: #080b11; --device-2: #121821; --device-3: #1f2836;
-      color-scheme: dark;
-    }
-  }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -132,7 +120,6 @@
   @media (max-width: 560px) { .c3 { grid-column: span 12; } }
   .w-top { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
   .w-top .tag { margin-left: auto; font-size: 12px; font-weight: 550; padding: 3px 9px; border-radius: 999px; background: rgb(255 255 255 / .55); white-space: nowrap; }
-  @media (prefers-color-scheme: dark) { .w-top .tag { background: rgb(255 255 255 / .08); } }
   .w-icon { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font-size: 17px; color: #fff; flex: none; }
   .big { font-size: 34px; font-weight: 650; line-height: 1; letter-spacing: -0.04em; }
   .small { font-size: 12.5px; opacity: .85; }
