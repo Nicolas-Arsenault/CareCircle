@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="640" viewBox="0 0 1600 640" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1424"/><stop offset="1" stop-color="#121a33"/></linearGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+    <filter id="sh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.35"/></filter>
+    <style>
+      .card { fill: #16213a; stroke: #2a3a5c; stroke-width: 1.5; filter: url(#sh); }
+      .t { fill: #eef3ff; font-size: 21px; font-weight: 700; }
+      .s { fill: #9fb0d0; font-size: 15px; }
+      .m { fill: #cfe0ff; font-size: 14px; font-family: 'JetBrains Mono', Menlo, Consolas, monospace; }
+      .ln { fill: none; stroke-width: 2.5; marker-end: url(#arr); }
+      .h { fill: #9fb0d0; font-size: 14px; font-weight: 700; letter-spacing: 2px; }
+    </style>
+  </defs>
+  <rect width="1600" height="640" fill="url(#bg)"/>
+  <text x="60" y="68" fill="#fff" font-size="32" font-weight="800">npm run aws:local</text>
+  <text x="60" y="100" class="s" font-size="17">The same Lambda handlers and DynamoDB code paths as the CDK deploy, emulated on one laptop. No AWS account needed.</text>
+
+  <text x="60" y="160" class="h">ON AWS</text>
+  <text x="60" y="400" class="h">ON YOUR LAPTOP</text>
+
+  <g id="cols">
+    <!-- DynamoDB -->
+    <rect class="card" style="stroke:#4f8cff" x="60" y="180" width="340" height="120" rx="18"/>
+    <text x="84" y="222" class="t">DynamoDB</text><text x="84" y="250" class="s">on-demand single table</text>
+    <rect class="card" style="stroke:#4f8cff" x="60" y="420" width="340" height="150" rx="18" stroke-dasharray="6 5"/>
+    <text x="84" y="462" class="t">dynalite</text><text x="84" y="490" class="s">DynamoDB-compatible server</text><text x="84" y="530" class="m">:8000 · data/dynamodb</text>
+    <path class="ln" stroke="#4f8cff" d="M230 304 V412"/>
+
+    <!-- Lambda URL -->
+    <rect class="card" style="stroke:#ff9900" x="440" y="180" width="340" height="120" rx="18"/>
+    <text x="464" y="222" class="t">Lambda + Function URL</text><text x="464" y="250" class="s">src/lambda/mcp.ts</text>
+    <rect class="card" style="stroke:#ff9900" x="440" y="420" width="340" height="150" rx="18" stroke-dasharray="6 5"/>
+    <text x="464" y="462" class="t">Local Function URL</text><text x="464" y="490" class="s">the real handler, same events</text><text x="464" y="530" class="m">:3001/mcp</text>
+    <path class="ln" stroke="#ff9900" d="M610 304 V412"/>
+
+    <!-- EventBridge -->
+    <rect class="card" style="stroke:#e7157b" x="820" y="180" width="340" height="120" rx="18"/>
+    <text x="844" y="222" class="t">EventBridge rule</text><text x="844" y="250" class="s">checker Lambda every 15 min</text>
+    <rect class="card" style="stroke:#e7157b" x="820" y="420" width="340" height="150" rx="18" stroke-dasharray="6 5"/>
+    <text x="844" y="462" class="t">Timer</text><text x="844" y="490" class="s">runs src/lambda/checker.ts</text><text x="844" y="530" class="m">every 1 min</text>
+    <path class="ln" stroke="#e7157b" d="M990 304 V412"/>
+
+    <!-- SNS -->
+    <rect class="card" style="stroke:#f472b6" x="1200" y="180" width="340" height="120" rx="18"/>
+    <text x="1224" y="222" class="t">SNS</text><text x="1224" y="250" class="s">SMS / email to the family</text>
+    <rect class="card" style="stroke:#f472b6" x="1200" y="420" width="340" height="150" rx="18" stroke-dasharray="6 5"/>
+    <text x="1224" y="462" class="t">Console + dashboard</text><text x="1224" y="490" class="s">alerts in the terminal and</text><text x="1224" y="512" class="s">the “Behind the scenes” card</text>
+    <path class="ln" stroke="#f472b6" d="M1370 304 V412"/>
+  </g>
+</svg>

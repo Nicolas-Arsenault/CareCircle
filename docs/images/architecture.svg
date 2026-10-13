@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="940" viewBox="0 0 1600 940" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1424"/>
+      <stop offset="1" stop-color="#121a33"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="0.15" cy="0.2" r="0.5"><stop offset="0" stop-color="#31c3ff" stop-opacity="0.18"/><stop offset="1" stop-color="#31c3ff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="glow2" cx="0.85" cy="0.85" r="0.55"><stop offset="0" stop-color="#ff9900" stop-opacity="0.12"/><stop offset="1" stop-color="#ff9900" stop-opacity="0"/></radialGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+    <filter id="sh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.35"/></filter>
+    <style>
+      .card { fill: #16213a; stroke: #2a3a5c; stroke-width: 1.5; filter: url(#sh); }
+      .t { fill: #eef3ff; font-size: 22px; font-weight: 700; }
+      .s { fill: #9fb0d0; font-size: 15px; }
+      .m { fill: #cfe0ff; font-size: 14px; font-family: 'JetBrains Mono', Menlo, Consolas, monospace; }
+      .lbl { font-size: 14px; font-weight: 600; }
+      .q { fill: #ffffff; font-size: 15px; font-style: italic; }
+      .ln { fill: none; stroke-width: 2.5; marker-end: url(#arr); }
+    </style>
+  </defs>
+  <rect width="1600" height="940" fill="url(#bg)"/>
+  <rect width="1600" height="940" fill="url(#glow1)"/>
+  <rect width="1600" height="940" fill="url(#glow2)"/>
+
+  <!-- Title -->
+  <text x="60" y="68" fill="#ffffff" font-size="34" font-weight="800" letter-spacing="-0.5">CareCircle architecture</text>
+  <text x="60" y="100" class="s" font-size="17">An Alexa+ add-on built as an MCP server (spec 2025-11-25, Streamable HTTP), deployed with one AWS CDK stack</text>
+
+  <!-- AWS boundary -->
+  <rect x="750" y="140" width="800" height="760" rx="24" fill="#ff9900" fill-opacity="0.04" stroke="#ff9900" stroke-opacity="0.7" stroke-width="2" stroke-dasharray="10 8"/>
+  <rect x="776" y="126" width="250" height="30" rx="15" fill="#ff9900"/>
+  <text x="901" y="147" text-anchor="middle" fill="#1a1205" font-size="15" font-weight="800">AWS · infra/ (CDK)</text>
+
+  <!-- People -->
+  <g transform="translate(-20 0)">
+    <rect class="card" x="60" y="190" width="270" height="160" rx="20"/>
+    <circle cx="112" cy="244" r="30" fill="#ffd166"/>
+    <text x="112" y="254" text-anchor="middle" font-size="30">🧓</text>
+    <text x="158" y="238" class="t">Mom</text>
+    <text x="158" y="262" class="s">lives alone, talks to</text>
+    <text x="158" y="282" class="s">her Echo</text>
+    <text x="84" y="318" class="q">“had my oatmeal and</text>
+    <text x="84" y="338" class="q">the little white pill”</text>
+  </g>
+  <g transform="translate(-20 0)">
+    <rect class="card" x="60" y="600" width="270" height="180" rx="20"/>
+    <circle cx="112" cy="654" r="30" fill="#f472b6"/>
+    <text x="112" y="664" text-anchor="middle" font-size="30">👩</text>
+    <text x="158" y="648" class="t">Sarah</text>
+    <text x="158" y="672" class="s">daughter, 3 hours away</text>
+    <text x="84" y="716" class="s">📱 texts from SNS</text>
+    <text x="84" y="740" class="s">🗣️ asks Alexa “how’s Mom?”</text>
+    <text x="84" y="764" class="s">🖥️ family dashboard</text>
+  </g>
+
+  <!-- Alexa+ -->
+  <g transform="translate(-30 0)">
+    <rect class="card" style="stroke:#31c3ff" x="400" y="190" width="270" height="200" rx="20" stroke-opacity="0.8"/>
+    <circle cx="452" cy="244" r="28" fill="none" stroke="#31c3ff" stroke-width="6"/>
+    <circle cx="452" cy="244" r="14" fill="#31c3ff" fill-opacity="0.35"/>
+    <text x="496" y="238" class="t">Alexa+</text>
+    <text x="496" y="262" class="s">MCP Toolkit</text>
+    <text x="424" y="306" class="s">Alexa+’s LLM reads the tool</text>
+    <text x="424" y="328" class="s">list and decides which tools</text>
+    <text x="424" y="350" class="s">to call. No intent model.</text>
+    <text x="424" y="374" class="s" fill="#7fd6ff">(simulated in web/ for the demo)</text>
+  </g>
+
+  <!-- Lambda MCP -->
+  <g>
+    <rect class="card" style="stroke:#ff9900" x="780" y="190" width="350" height="380" rx="20" stroke-opacity="0.8"/>
+    <rect x="804" y="214" width="48" height="48" rx="10" fill="#ff9900"/>
+    <text x="828" y="248" text-anchor="middle" fill="#1a1205" font-size="28" font-weight="900">λ</text>
+    <text x="868" y="236" class="t">MCP server</text>
+    <text x="868" y="258" class="s">Lambda + Function URL</text>
+    <line x1="804" y1="284" x2="1106" y2="284" stroke="#2a3a5c"/>
+    <text x="804" y="310" class="s" font-weight="700" fill="#ffc266">8 tools</text>
+    <text x="804" y="338" class="m">log_checkin</text>
+    <text x="804" y="364" class="m">add_reminder</text>
+    <text x="804" y="390" class="m">list_today</text>
+    <text x="804" y="416" class="m">get_status</text>
+    <text x="960" y="338" class="m">get_timeline</text>
+    <text x="960" y="364" class="m">check_missed</text>
+    <text x="960" y="390" class="m">notify_family</text>
+    <text x="960" y="416" class="m">weekly_summary</text>
+    <line x1="804" y1="440" x2="1106" y2="440" stroke="#2a3a5c"/>
+    <text x="804" y="468" class="s">CareService: dose matching,</text>
+    <text x="804" y="490" class="s">missed check-ins, summaries.</text>
+    <text x="804" y="520" class="s">Stateless JSON responses,</text>
+    <text x="804" y="542" class="s">optional bearer token.</text>
+  </g>
+
+  <!-- DynamoDB -->
+  <g>
+    <rect class="card" style="stroke:#4f8cff" x="1210" y="190" width="300" height="170" rx="20" stroke-opacity="0.8"/>
+    <ellipse cx="1258" cy="226" rx="24" ry="8" fill="#4f8cff"/>
+    <path d="M1234 226 v30 a24 8 0 0 0 48 0 v-30" fill="#4f8cff" fill-opacity="0.55"/>
+    <ellipse cx="1258" cy="256" rx="24" ry="8" fill="none" stroke="#9cc0ff" stroke-width="1.5"/>
+    <text x="1296" y="238" class="t">DynamoDB</text>
+    <text x="1296" y="260" class="s">on-demand</text>
+    <text x="1234" y="302" class="s">Single table (pk, sk):</text>
+    <text x="1234" y="326" class="s">events, reminders, alerts</text>
+  </g>
+
+  <!-- Bedrock -->
+  <g>
+    <rect class="card" style="stroke:#a78bfa" x="1210" y="420" width="300" height="150" rx="20" stroke-opacity="0.8"/>
+    <rect x="1234" y="444" width="48" height="48" rx="12" fill="#a78bfa"/>
+    <text x="1258" y="477" text-anchor="middle" fill="#160c33" font-size="24">✦</text>
+    <text x="1296" y="466" class="t">Bedrock</text>
+    <text x="1296" y="488" class="s">Claude (optional)</text>
+    <text x="1234" y="530" class="s">Weekly doctor summaries;</text>
+    <text x="1234" y="552" class="s">falls back to templates</text>
+  </g>
+
+  <!-- EventBridge -->
+  <g>
+    <rect class="card" style="stroke:#e7157b" x="780" y="640" width="350" height="110" rx="20" stroke-opacity="0.8"/>
+    <rect x="804" y="664" width="48" height="48" rx="10" fill="#e7157b"/>
+    <text x="828" y="696" text-anchor="middle" fill="#fff" font-size="24">⏱</text>
+    <text x="868" y="686" class="t">EventBridge</text>
+    <text x="868" y="710" class="s">rate(15 minutes)</text>
+  </g>
+
+  <!-- Checker Lambda -->
+  <g>
+    <rect class="card" style="stroke:#ff9900" x="1210" y="620" width="300" height="130" rx="20" stroke-opacity="0.8"/>
+    <rect x="1234" y="644" width="48" height="48" rx="10" fill="#ff9900"/>
+    <text x="1258" y="678" text-anchor="middle" fill="#1a1205" font-size="28" font-weight="900">λ</text>
+    <text x="1296" y="666" class="t">MissedCheckins</text>
+    <text x="1296" y="688" class="s">Lambda</text>
+    <text x="1234" y="728" class="s">No check-in by 10 AM? Dose late?</text>
+  </g>
+
+  <!-- SNS -->
+  <g>
+    <rect class="card" style="stroke:#f472b6" x="1210" y="790" width="300" height="90" rx="20" stroke-opacity="0.8"/>
+    <rect x="1234" y="811" width="48" height="48" rx="10" fill="#f472b6"/>
+    <text x="1258" y="844" text-anchor="middle" fill="#2b0718" font-size="24">✉</text>
+    <text x="1296" y="832" class="t">SNS</text>
+    <text x="1296" y="856" class="s">FamilyAlerts topic</text>
+  </g>
+
+  <!-- Arrows -->
+  <path class="ln" stroke="#ffd166" d="M310 260 H362"/>
+  <text x="316" y="246" class="lbl" fill="#ffd166">voice</text>
+
+  <path class="ln" stroke="#f472b6" d="M240 600 C 280 480, 370 430, 440 398"/>
+  <text x="300" y="530" class="lbl" fill="#f472b6">“how’s Mom</text>
+  <text x="300" y="548" class="lbl" fill="#f472b6">today?”</text>
+
+  <path class="ln" stroke="#31c3ff" d="M640 290 H772"/>
+  <text x="652" y="266" class="lbl" fill="#31c3ff">tools/call</text>
+  <text x="652" y="316" class="lbl" fill="#7fd6ff" font-weight="500">HTTPS · MCP</text>
+
+  <path class="ln" stroke="#4f8cff" d="M1130 270 H1202"/>
+  <path class="ln" stroke="#a78bfa" d="M1130 495 H1202"/>
+  <text x="1140" y="482" class="lbl" fill="#a78bfa">summary</text>
+
+  <path class="ln" stroke="#e7157b" d="M1130 690 H1202"/>
+  <text x="1140" y="676" class="lbl" fill="#e7157b">invoke</text>
+
+  <path class="ln" stroke="#4f8cff" d="M1470 620 V368"/>
+  <text x="1478" y="400" class="lbl" fill="#9cc0ff">read</text>
+
+  <path class="ln" stroke="#f472b6" d="M1360 750 V782"/>
+
+  <path class="ln" stroke="#f472b6" d="M1210 835 H760 C 600 835, 400 835, 318 770"/>
+  <text x="420" y="866" class="lbl" fill="#f472b6">SMS / email: “Mom hasn’t confirmed her Lisinopril”</text>
+</svg>
