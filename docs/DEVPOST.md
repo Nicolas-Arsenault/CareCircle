@@ -14,26 +14,39 @@ Short version for the Devpost form. Gallery images are in [`docs/devpost/`](devp
 
 ## About the project
 
-### Inspiration
+## Inspiration
 
 Mom lives alone. Her daughter Sarah lives three hours away and wants to know she's okay without calling five times a day. Mom already talks to the Echo in her kitchen, so we made that the whole interface.
 
-### What it does
+## What it does
 
 - **Mom just talks.** "Good morning, had my oatmeal and the little white pill." Alexa+ turns that into a logged check-in, dose and meal. No commands to learn.
 - **The family stays in the loop.** A live dashboard, and Sarah can ask Alexa "How's Mom today?"
 - **It notices what didn't happen.** No check-in by 10 AM, or a dose an hour late, and the family gets one text.
 - **One page for the doctor.** A weekly summary of doses, mood and anything worth raising. It reports what was logged and gives no medical advice.
 
-### How we built it
+## How we built it
 
 An MCP server (spec 2025-11-25, Streamable HTTP) with 8 tools, built with the TypeScript MCP SDK. It runs on AWS Lambda behind a Function URL, stores everything in DynamoDB, checks for misses with EventBridge every 15 minutes, texts the family through SNS, and can write summaries with Claude on Amazon Bedrock. One CDK stack deploys it all, and `npm run aws:local` runs the same handlers against emulated AWS on a laptop.
 
-### Challenges
+## Challenges we ran into
 
 Alexa+ MCP Toolkit access goes through an Amazon Solutions Architect, add-ons need full OAuth 2.1, and our Free-plan AWS account can't deploy. So we built a simulated Alexa that calls the real MCP endpoint, and an emulated AWS mode that runs the real Lambda code.
 
-### What's next
+## Accomplishments that we're proud of
+
+- The proactive loop: CareCircle notices what *didn't* happen and tells the family once.
+- One codebase that runs on a laptop, on emulated AWS and on real Lambda, with the same handlers.
+- A dashboard that shows the plumbing live: every MCP call, scheduled run and alert.
+- Honest about health: no diagnosis, no advice, only what was logged.
+
+## What we learned
+
+- When an LLM routes the calls, tool names and descriptions are the UX.
+- Stateless Streamable HTTP fits Lambda perfectly: no sessions, no WebSockets.
+- Emulating AWS from day one meant every feature was tested against real DynamoDB behaviour.
+
+## What's next for CareCircle
 
 OAuth with Cognito, testing on a real Echo, per-family consent, and a gentle spoken nudge to Mom before the family is texted.
 
