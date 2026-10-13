@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CareCircle</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #ffffff; --ink: #1f2a2e; --muted: #5d6b70; --line: #e4e0d6;
+    --accent: #0f7b6c; --accent-soft: #e1f2ee; --warn: #b4531a; --warn-soft: #fbeadf;
+    --alexa: #0b1b2b; --alexa-ink: #e8f3ff; --ring: #31c3ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121617; --card: #1b2123; --ink: #e8ecec; --muted: #9aa8ab; --line: #2b3336;
+      --accent: #43c2ad; --accent-soft: #163631; --warn: #f0975d; --warn-soft: #3a2518; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 20px 16px 8px; max-width: 1200px; margin: 0 auto; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); }
+  main { max-width: 1200px; margin: 0 auto; padding: 8px 16px 40px; display: grid; grid-template-columns: minmax(300px, 420px) 1fr; gap: 20px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 10px; }
+
+  /* Simulated Alexa */
+  .alexa { background: var(--alexa); color: var(--alexa-ink); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-height: 560px; align-self: start; position: sticky; top: 16px; }
+  @media (max-width: 860px) { .alexa { position: static; } }
+  .alexa h2 { color: #9fb6cc; }
+  .speaker { display: flex; gap: 6px; flex-wrap: wrap; }
+  .speaker button { background: #17304a; color: var(--alexa-ink); border: 1px solid #27486a; border-radius: 999px; padding: 6px 12px; cursor: pointer; font: inherit; font-size: 14px; }
+  .speaker button[aria-pressed="true"] { background: var(--ring); color: #04131f; border-color: var(--ring); }
+  .chat { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; max-height: 420px; padding-right: 4px; }
+  .bubble { padding: 9px 12px; border-radius: 14px; max-width: 90%; white-space: pre-wrap; }
+  .bubble.you { align-self: flex-end; background: #23415f; }
+  .bubble.alexa-says { align-self: flex-start; background: #0f2a40; border: 1px solid #1f4a6c; }
+  details.trace { font-size: 12px; color: #9fb6cc; align-self: stretch; }
+  details.trace pre { white-space: pre-wrap; word-break: break-word; background: #06121d; padding: 8px; border-radius: 8px; margin: 6px 0 0; }
+  .ask { display: flex; gap: 8px; }
+  .ask input { flex: 1; min-width: 0; border-radius: 10px; border: 1px solid #27486a; background: #06121d; color: var(--alexa-ink); padding: 10px 12px; font: inherit; }
+  .mic { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--ring); background: #06121d; color: var(--ring); cursor: pointer; font-size: 20px; flex: none; }
+  .mic.listening { background: var(--ring); color: #04131f; box-shadow: 0 0 0 6px rgba(49,195,255,0.25); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chips button { background: transparent; border: 1px dashed #3a5d80; color: #b9d3ea; border-radius: 999px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+  .note { font-size: 12px; color: #9fb6cc; margin: 0; }
+
+  /* Family view */
+  .family { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; align-content: start; }
+  .family .wide { grid-column: 1 / -1; }
+  @media (max-width: 600px) { .family { grid-template-columns: 1fr; } }
+  .summary { font-size: 19px; line-height: 1.5; margin: 0; }
+  ul.clean { list-style: none; margin: 0; padding: 0; }
+  ul.clean li { padding: 7px 0; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: baseline; }
+  ul.clean li:last-child { border-bottom: 0; }
+  .time { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 78px; font-size: 14px; }
+  .pill { font-size: 12px; border-radius: 999px; padding: 1px 8px; margin-left: auto; white-space: nowrap; }
+  .ok { background: var(--accent-soft); color: var(--accent); }
+  .late { background: var(--warn-soft); color: var(--warn); }
+  .alert li { color: var(--warn); }
+  .alert li.empty { color: var(--muted); }
+  .kind { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; margin-left: auto; white-space: nowrap; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 9px 14px; font: inherit; cursor: pointer; }
+  .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  pre.report { white-space: pre-wrap; font: 14px/1.5 ui-monospace, Menlo, monospace; background: var(--bg); padding: 12px; border-radius: 10px; margin: 10px 0 0; }
+  .empty { color: var(--muted); }
+  .by { color: var(--muted); font-size: 13px; }
+  dl.env { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0 0 12px; font-size: 14px; }
+  dl.env dt { font-weight: 600; }
+  dl.env dd { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+  .activity li { font-size: 14px; }
+  .src { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); min-width: 92px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CareCircle</h1>
+  <p id="tagline">Keeping the family in the loop.</p>
+</header>
+<main>
+  <section class="alexa" aria-label="Simulated Alexa">
+    <h2>Alexa (simulated)</h2>
+    <div>
+      <div class="speaker" id="speakers" role="group" aria-label="Who is talking"></div>
+    </div>
+    <div class="chat" id="chat" aria-live="polite"></div>
+    <div class="chips" id="chips"></div>
+    <div class="ask">
+      <button class="mic" id="mic" title="Hold a conversation by voice" aria-label="Speak">&#127908;</button>
+      <input id="say" placeholder="Type what you'd say to Alexa…" autocomplete="off">
+    </div>
+    <p class="note" id="brain"></p>
+  </section>
+
+  <section class="family" aria-label="Family view">
+    <div class="card wide">
+      <h2 id="status-title">Today</h2>
+      <p class="summary" id="summary">Loading…</p>
+    </div>
+    <div class="card">
+      <h2>Today's checklist</h2>
+      <ul class="clean" id="today"></ul>
+    </div>
+    <div class="card">
+      <h2>Coming up</h2>
+      <ul class="clean" id="upcoming"></ul>
+    </div>
+    <div class="card wide alert">
+      <h2>Alerts sent to the family</h2>
+      <ul class="clean" id="alerts"></ul>
+    </div>
+    <div class="card wide" id="backstage">
+      <h2>Behind the scenes</h2>
+      <dl class="env" id="env" hidden></dl>
+      <ul class="clean activity" id="activity"></ul>
+    </div>
+    <div class="card wide">
+      <h2>Shared timeline</h2>
+      <ul class="clean" id="timeline"></ul>
+    </div>
+    <div class="card wide">
+      <div class="row">
+        <button class="btn" id="check">Check for missed check-ins</button>
+        <button class="btn secondary" id="weekly">Weekly summary for the doctor</button>
+      </div>
+      <pre class="report" id="report" hidden></pre>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+let cfg = { parentName: "Mom", timeZone: undefined };
+let speaker = null;
+
+const fmtTime = (iso) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", timeZone: cfg.timeZone });
+const fmtDay = (iso) => new Date(iso).toLocaleDateString([], { weekday: "short", timeZone: cfg.timeZone });
+const fmtHHMM = (hhmm) => { const [h, m] = hhmm.split(":").map(Number); return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
+
+async function api(path, opts) {
+  const res = await fetch(`/api/${path}`, opts);
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error || res.statusText);
+  return body;
+}
+
+function setupSpeakers() {
+  const people = [cfg.parentName, "Sarah"];
+  speaker = people[0];
+  $("speakers").innerHTML = people.map((p, i) =>
+    `<button aria-pressed="${i === 0}" data-p="${esc(p)}">${i === 0 ? "🧓 " : "👩 "}${esc(p)}${i === 0 ? "" : " (daughter)"}</button>`).join("");
+  $("speakers").querySelectorAll("button").forEach((b) => b.onclick = () => {
+    speaker = b.dataset.p;
+    $("speakers").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    renderChips();
+  });
+  renderChips();
+}
+
+function renderChips() {
+  const parent = speaker === cfg.parentName;
+  const phrases = parent
+    ? ["Good morning!", "Had my oatmeal and the little white pill", "I'm feeling tired today", "What do I still need to take today?", "Remind me about the doctor Thursday at 2pm", "Tell the kids I'm going to bed early"]
+    : [`How's ${cfg.parentName} today?`, "Remind me to call the pharmacy tomorrow at 10am", "Give me the weekly summary"];
+  $("chips").innerHTML = phrases.map((p) => `<button>${esc(p)}</button>`).join("");
+  $("chips").querySelectorAll("button").forEach((b) => b.onclick = () => ask(b.textContent));
+}
+
+function addBubble(cls, html) {
+  const div = document.createElement("div");
+  div.className = `bubble ${cls}`;
+  div.innerHTML = html;
+  $("chat").appendChild(div);
+  $("chat").scrollTop = $("chat").scrollHeight;
+  return div;
+}
+
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.split("\n\n")[0]);
+  u.rate = 1.02;
+  speechSynthesis.speak(u);
+}
+
+async function ask(utterance) {
+  utterance = utterance.trim();
+  if (!utterance) return;
+  addBubble("you", `<span class="by">${esc(speaker)}:</span> ${esc(utterance)}`);
+  const thinking = addBubble("alexa-says", "…");
+  try {
+    const turn = await api("alexa", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ utterance, speaker }) });
+    thinking.innerHTML = esc(turn.reply || "Okay.");
+    if (turn.trace.length) {
+      const d = document.createElement("details");
+      d.className = "trace";
+      d.innerHTML = `<summary>MCP calls: ${turn.trace.map((t) => esc(t.tool)).join(", ")}</summary>` +
+        turn.trace.map((t) => `<pre>→ tools/call ${esc(t.tool)} ${esc(JSON.stringify(t.arguments))}\n← ${esc(t.result)}</pre>`).join("");
+      $("chat").appendChild(d);
+    }
+    speak(turn.reply || "Okay.");
+    refresh();
+  } catch (err) {
+    thinking.textContent = `Sorry, something went wrong: ${err.message}`;
+  }
+}
+
+$("say").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { ask(e.target.value); e.target.value = ""; }
+});
+
+// Voice input through the browser's speech recognition (Chrome, Edge, Safari).
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (Recognition) {
+  const rec = new Recognition();
+  rec.lang = "en-US";
+  rec.interimResults = false;
+  rec.onresult = (e) => ask(e.results[0][0].transcript);
+  rec.onend = () => $("mic").classList.remove("listening");
+  $("mic").onclick = () => { $("mic").classList.add("listening"); rec.start(); };
+} else {
+  $("mic").disabled = true;
+  $("mic").title = "Voice input isn't supported in this browser. Type instead.";
+}
+
+async function refresh() {
+  try {
+    const [status, today, upcoming, timeline, activity] = await Promise.all([api("status"), api("today"), api("upcoming"), api("timeline?days=3"), api("activity")]);
+    $("activity").innerHTML = activity.length ? activity.slice(0, 12).map((a) =>
+      `<li><span class="time">${fmtTime(a.at)}</span><span class="src">${esc(a.source)}</span><span>${esc(a.message)}</span></li>`).join("")
+      : `<li class="empty">${cfg.environment ? "Waiting for the first request…" : "Alerts sent by the server appear here. Run npm run aws:local to see the emulated AWS services at work."}</li>`;
+    $("summary").textContent = status.summary;
+    $("today").innerHTML = today.items.length ? today.items.map((i) => {
+      const med = i.reminder.kind === "medication";
+      const tag = med ? (i.done ? `<span class="pill ok">taken ${fmtTime(i.doneAt)}</span>` : `<span class="pill late">not yet</span>`) : "";
+      return `<li><span class="time">${fmtHHMM(i.time)}</span><span>${esc(i.reminder.title)}</span>${tag}</li>`;
+    }).join("") : `<li class="empty">Nothing scheduled today.</li>`;
+    $("upcoming").innerHTML = upcoming.length ? upcoming.map((r) =>
+      `<li><span class="time">${fmtDay(r.dueAt)} ${fmtTime(r.dueAt)}</span><span>${esc(r.title)}</span></li>`).join("")
+      : `<li class="empty">No appointments in the next two weeks.</li>`;
+    const alerts = timeline.alerts.slice().reverse();
+    $("alerts").innerHTML = alerts.length ? alerts.map((a) =>
+      `<li><span class="time">${fmtDay(a.sentAt)} ${fmtTime(a.sentAt)}</span><span>${esc(a.message)}</span></li>`).join("")
+      : `<li class="empty">No alerts. Everything is on track.</li>`;
+    const events = timeline.events.slice().reverse().slice(0, 30);
+    $("timeline").innerHTML = events.length ? events.map((e) =>
+      `<li><span class="time">${fmtDay(e.at)} ${fmtTime(e.at)}</span><span>${esc(e.text)} <span class="by">· ${esc(e.by)}</span></span><span class="kind">${esc(e.kind)}</span></li>`).join("")
+      : `<li class="empty">Nothing logged yet.</li>`;
+  } catch (err) {
+    $("summary").textContent = `Couldn't load: ${err.message}`;
+  }
+}
+
+$("check").onclick = async () => {
+  const out = await api("check", { method: "POST" });
+  $("report").hidden = false;
+  $("report").textContent = out.misses.length
+    ? out.misses.map((m) => `${out.sent.some((s) => s.key === m.key) ? "Sent" : "Already sent"}: ${m.message}`).join("\n")
+    : "Nothing missed so far today.";
+  refresh();
+};
+$("weekly").onclick = async () => {
+  $("report").hidden = false;
+  $("report").textContent = "Writing the summary…";
+  $("report").textContent = (await api("weekly")).summary;
+};
+
+(async () => {
+  try { cfg = await api("config"); } catch {}
+  $("status-title").textContent = `How's ${cfg.parentName} today?`;
+  $("tagline").textContent = `Keeping ${cfg.parentName} and the family in the loop.`;
+  $("brain").textContent = cfg.brain === "bedrock"
+    ? "Understanding speech with Claude on Amazon Bedrock, calling the CareCircle MCP server."
+    : "Offline mode: phrases are matched by simple rules, then sent to the CareCircle MCP server. Set ALEXA_BRAIN=bedrock for an AI model.";
+  if (cfg.environment) {
+    $("env").hidden = false;
+    $("env").innerHTML = Object.entries(cfg.environment).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+  }
+  setupSpeakers();
+  refresh();
+  setInterval(refresh, 5000);
+})();
+</script>
+</body>
+</html>
