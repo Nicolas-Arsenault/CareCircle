@@ -7,6 +7,7 @@
 <p align="center"><b>An Alexa+ add-on that keeps an aging parent and their family in the loop.</b></p>
 
 <p align="center">
+  <a href="docs/video/carecircle-hero.mp4">▶ Demo video with sound (97 s)</a> ·
   <a href="docs/video/carecircle-motion.mp4">▶ Motion demo (66 s)</a> ·
   <a href="docs/video/app-walkthrough.mp4">▶ Real app walkthrough (46 s)</a> ·
   <a href="docs/DEVPOST.md">Devpost write-up</a> ·
@@ -234,6 +235,7 @@ web/index.html       simulated Alexa + family view (single file, no build step)
 docs/                Alexa+ notes, Devpost write-up, diagrams, screenshots, demo videos
 infra/               AWS CDK stack
 test/                node:test suites
+video/               the demo video as code (app capture + motion scenes + soundtrack)
 ```
 
 ## Demo media
@@ -241,6 +243,7 @@ test/                node:test suites
 Everything under `docs/images` and `docs/video` is generated from this repo:
 
 - **Screenshots and the walkthrough video** come from the real app under `npm run aws:local -- --seed`, driven by Playwright.
+- **The demo video** ([`docs/video/carecircle-hero.mp4`](docs/video/carecircle-hero.mp4), 97 s with a soundtrack) is made in [`video/`](video/README.md): a Playwright script drives the real app for its screens, replies and alerts, and an animated scene built around them renders frame by frame to MP4. `cd video && npm install && npm run build` remakes it whenever the app changes.
 - **The motion demo** is [`docs/video/motion.html`](docs/video/motion.html), a single page you can open in a browser (after `npm install`) to watch it play live. `node docs/video/render.mjs` renders it frame by frame to MP4 (needs Playwright and ffmpeg; see the top of the script).
 - **Diagrams** are hand-written SVG in [`docs/images`](docs/images), with PNG copies for places that don't take SVG, like Devpost.
 
