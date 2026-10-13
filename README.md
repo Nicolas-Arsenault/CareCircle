@@ -40,8 +40,25 @@ npm run dev
 
 Then open <http://127.0.0.1:3000>. You get:
 
-- **A simulated Alexa** on the left. Pick who's talking (Mom or her daughter), then speak (Chrome, Edge or Safari) or type. It calls the CareCircle MCP server over real Streamable HTTP, the same way Alexa+ does, and shows each `tools/call` it made.
-- **The family view** on the right: today's status, the medication checklist, upcoming appointments, alerts and the shared timeline. It refreshes every few seconds.
+- **A simulated Alexa** on the left, styled like an Echo. Pick who's talking (Mom or her daughter Sarah), then speak (Chrome, Edge or Safari), type, or tap a suggested phrase. The light ring shows when it is listening, thinking or speaking. It calls the CareCircle MCP server over real Streamable HTTP, the same way Alexa+ does; each reply lists the tools it called, and you can expand one to see the arguments and the result.
+- **The family view** on the right, as a grid of colour-coded widgets (each kind of data keeps its colour everywhere: medication coral, check-in yellow, mood blue, meals green, appointments teal):
+  - what Alexa would answer to "How's Mom today?";
+  - **Check-in**: time of the first thing Mom said today, or when it's expected;
+  - **Medications**: a progress ring plus each dose (taken, due, or overdue);
+  - **Mood**: today's mood on a five-face scale and a 7-day mood bar chart;
+  - **Meals**: meals logged today;
+  - **This week**: one column per day with a square per scheduled dose (taken or missed), whether Mom checked in, and the week's dose percentage;
+  - **Next visit**: a countdown to the next appointment;
+  - **Alerts**: what was sent to the family;
+  - **Activity**: the latest logged events, filterable by type.
+  - **Behind the scenes**: which backends are in use (or, under `npm run aws:local`, each emulated AWS service) and a live log of Lambda calls, scheduled runs and alerts from `GET /api/activity`.
+
+  It refreshes every 5 seconds and outlines activity that just arrived.
+- **Actions:** "Check for misses" runs the missed check-in scan on demand; "Doctor summary" opens the weekly summary in a printable dialog.
+- **Page API:** besides the endpoints above, the page polls `GET /api/week` (doses per day, events and missed check-in days for the last 7 days; no AI call, so it stays cheap with `SUMMARIZER=bedrock`).
+- **The top bar** shows which backends are active (data store, summaries, alerts, how Alexa understands speech), read from `GET /api/config`.
+
+The page follows your system light or dark setting and honours reduced-motion. Fonts (Geist) and icons (Phosphor) are served from local npm packages under `/vendor/*`, so the demo needs no internet connection.
 
 By default the simulator understands speech with simple offline rules (`src/alexa/rules.ts`). Set `ALEXA_BRAIN=bedrock` to let Claude on Bedrock pick the tools instead.
 
@@ -138,7 +155,7 @@ src/
   ai/                template and Bedrock summaries
   notify/            console and SNS alerts
   lambda/            AWS Lambda entry points (MCP endpoint, missed check-in job)
-web/index.html       simulated Alexa + family view
+web/index.html       simulated Alexa + family view (single file, no build step)
 infra/               AWS CDK stack
 test/                node:test suites
 ```
