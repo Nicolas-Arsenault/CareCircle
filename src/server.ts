@@ -7,7 +7,7 @@ import { loadConfig, type Config } from "./config.js";
 import { createCare } from "./app.js";
 import { createMcpServer } from "./mcp.js";
 import type { CareService } from "./care.js";
-import { AlexaSimulator } from "./alexa/simulator.js";
+import { AlexaSimulator, type Brain } from "./alexa/simulator.js";
 import { recentActivity } from "./activity.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -83,7 +83,7 @@ export function createHttpApp(
       parentName: config.parentName,
       timeZone: config.timeZone,
       checkinDeadline: config.checkinDeadline,
-      brain: simulator ? process.env.ALEXA_BRAIN ?? "rules" : null,
+      brain: simulator ? simulator.brain : null,
       store: config.store,
       summarizer: config.summarizer,
       notifier: config.notifier,
@@ -128,6 +128,13 @@ export interface StartOptions {
   environment?: Record<string, string>;
 }
 
+/** ALEXA_BRAIN wins; otherwise an Anthropic API key turns on Claude, and with neither the offline rules play Alexa. */
+function pickBrain(): Brain {
+  const brain = process.env.ALEXA_BRAIN;
+  if (brain === "bedrock" || brain === "claude" || brain === "rules") return brain;
+  return process.env.ANTHROPIC_API_KEY ? "claude" : "rules";
+}
+
 /** Starts the local server: MCP endpoint, family page and simulated Alexa. */
 export async function startServer(config: Config, opts: StartOptions = {}): Promise<void> {
   const care = createCare(config);
@@ -136,9 +143,10 @@ export async function startServer(config: Config, opts: StartOptions = {}): Prom
     authToken: config.mcpAuthToken,
     parentName: config.parentName,
     timeZone: config.timeZone,
-    brain: process.env.ALEXA_BRAIN === "bedrock" ? "bedrock" : "rules",
+    brain: pickBrain(),
     bedrockModel: config.bedrockModel,
     awsRegion: config.awsRegion,
+    anthropicModel: process.env.ANTHROPIC_MODEL,
   });
   const app = createHttpApp(config, care, simulator, opts.environment);
 
