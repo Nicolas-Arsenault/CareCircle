@@ -106,6 +106,8 @@ function parseCheckin(utterance: string, by: string | undefined): PlannedCall[] 
  * @param speaker who is talking; undefined means the parent.
  */
 export function planCalls(utterance: string, speaker?: string): PlannedCall[] {
+  // People type the wake word out of habit: "Alexa, how's Mom?"
+  utterance = utterance.replace(/^\s*(hey\s+)?alexa[\s,.!:-]*/i, "") || utterance;
   const s = utterance.toLowerCase().trim();
   const by = speaker || undefined;
 

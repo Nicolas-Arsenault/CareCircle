@@ -126,6 +126,10 @@ Behind the tools:
 
 [`render.yaml`](render.yaml) runs the whole demo (MCP endpoint, simulated Alexa and family page) as one Node process on Render's free plan. It seeds a demo week on every start, and the free instance sleeps when idle, so the demo resets itself between visitors. The first visit after a sleep takes about a minute to wake up.
 
+**What's real and what's simulated.** Alexa+ add-ons can only be tested on a real Echo once Amazon grants toolkit access, so the left panel plays Alexa+: it turns what you say or type into tool calls. Everything after that is the real add-on: each turn is a real MCP request to this server, the calls show under every answer, and the dashboard updates live. "Start the 1-minute demo" walks through the whole loop. Voice input is optional (Chrome, Edge and Safari); typing and the phrase chips work everywhere.
+
+By default the simulated Alexa uses offline phrase rules, which handle the demo phrases and close variations. To let it understand anything a visitor types, add an `ANTHROPIC_API_KEY` environment variable on Render: Claude then picks the tools, the way Alexa+'s model does, and the rules take over if the API is unreachable.
+
 ## Run it locally (no AWS needed)
 
 Requires Node.js 20 or newer.
@@ -158,7 +162,7 @@ Then open <http://127.0.0.1:3000>. You get:
 
 The page always uses its light theme (it ignores the system dark-mode setting) and honours reduced-motion. Fonts (Geist) and icons (Phosphor) are served from local npm packages under `/vendor/*`, so the demo needs no internet connection.
 
-By default the simulator understands speech with simple offline rules (`src/alexa/rules.ts`). Set `ALEXA_BRAIN=bedrock` to let Claude on Bedrock pick the tools instead.
+By default the simulator understands speech with simple offline rules (`src/alexa/rules.ts`). Set `ALEXA_BRAIN=bedrock` to let Claude on Bedrock pick the tools instead, or set `ANTHROPIC_API_KEY` to use Claude through the Anthropic API.
 
 ### Emulated AWS, still on your machine
 
@@ -207,7 +211,8 @@ Everything is an environment variable with a working default. Copy `.env.example
 | `DOSE_GRACE_MINUTES` | `60` | How late a dose can be before alerting |
 | `STORE` | `file` | `file` (`data/carecircle.json`), `memory` or `dynamodb` |
 | `SUMMARIZER` | `template` | `template` or `bedrock` |
-| `ALEXA_BRAIN` | `rules` | How the simulator understands speech: `rules` or `bedrock` |
+| `ALEXA_BRAIN` | `rules` (`claude` when `ANTHROPIC_API_KEY` is set) | How the simulator understands speech: `rules`, `bedrock` or `claude` |
+| `ANTHROPIC_MODEL` | `claude-haiku-5-5` | Model for `ALEXA_BRAIN=claude` |
 | `BEDROCK_MODEL_ID` | `anthropic.claude-opus-5-5` | Any Claude model on Bedrock |
 | `NOTIFIER` | `console` | `console` or `sns` (needs `SNS_TOPIC_ARN`) |
 | `MCP_AUTH_TOKEN` | empty | If set, `/mcp` requires `Authorization: Bearer <token>` |

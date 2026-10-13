@@ -17,3 +17,6 @@ services:
         value: "22"
       - key: CARE_TIMEZONE
         value: America/Toronto
+      # Optional: lets Claude understand free-form typing in the simulated Alexa. Leave blank for offline rules.
+      - key: ANTHROPIC_API_KEY
+        sync: false

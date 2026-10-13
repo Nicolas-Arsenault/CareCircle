@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { AnthropicBedrockMantle } from "@anthropic-ai/bedrock-sdk";
-import type Anthropic from "@anthropic-ai/sdk";
+import Anthropic from "@anthropic-ai/sdk";
 import { planCalls } from "./rules.js";
 
 export interface TraceEntry {
@@ -14,7 +14,15 @@ export interface TraceEntry {
 export interface AlexaTurn {
   reply: string;
   trace: TraceEntry[];
-  brain: "rules" | "bedrock";
+  brain: Brain;
+}
+
+/** Who plays Alexa+'s model: offline phrase rules, Claude on Bedrock, or Claude through the Anthropic API. */
+export type Brain = "rules" | "bedrock" | "claude";
+
+/** The one Messages API call the simulator needs; both the Anthropic and Bedrock clients provide it. */
+interface MessagesClient {
+  messages: { create(params: Anthropic.MessageCreateParamsNonStreaming): Promise<Anthropic.Message> };
 }
 
 export interface SimulatorOptions {
@@ -23,9 +31,11 @@ export interface SimulatorOptions {
   authToken?: string;
   parentName: string;
   timeZone: string;
-  brain: "rules" | "bedrock";
+  brain: Brain;
   bedrockModel: string;
   awsRegion: string;
+  /** Model for the "claude" brain, e.g. claude-haiku-5-5. */
+  anthropicModel?: string;
 }
 
 const SYSTEM = (parent: string, speaker: string, now: string) => `You are Alexa, a voice assistant, using the CareCircle add-on.
@@ -39,9 +49,13 @@ Use the tools to act on what was said, then answer in one to three short spoken 
  * to call, and calls them over real MCP (Streamable HTTP), exactly as Alexa+ would.
  */
 export class AlexaSimulator {
-  private bedrock?: AnthropicBedrockMantle;
+  private llm?: MessagesClient;
 
   constructor(private readonly opts: SimulatorOptions) {}
+
+  get brain(): Brain {
+    return this.opts.brain;
+  }
 
   private async connect(): Promise<Client> {
     const client = new Client({ name: "carecircle-alexa-simulator", version: "0.1.0" });
@@ -65,9 +79,14 @@ export class AlexaSimulator {
   async handle(utterance: string, speaker?: string): Promise<AlexaTurn> {
     const client = await this.connect();
     try {
-      return this.opts.brain === "bedrock"
-        ? await this.withBedrock(client, utterance, speaker || this.opts.parentName)
-        : await this.withRules(client, utterance, speaker);
+      if (this.opts.brain === "rules") return await this.withRules(client, utterance, speaker);
+      try {
+        return await this.withClaude(client, utterance, speaker || this.opts.parentName);
+      } catch (err) {
+        // A model outage shouldn't break the demo: fall back to the offline rules.
+        console.error(`[alexa] ${this.opts.brain} brain failed, using rules:`, (err as Error).message);
+        return await this.withRules(client, utterance, speaker);
+      }
     } finally {
       await client.close();
     }
@@ -87,8 +106,18 @@ export class AlexaSimulator {
     return { reply, trace, brain: "rules" };
   }
 
-  private async withBedrock(client: Client, utterance: string, speaker: string): Promise<AlexaTurn> {
-    this.bedrock ??= new AnthropicBedrockMantle({ awsRegion: this.opts.awsRegion });
+  private model(): { llm: MessagesClient; model: string; extra: Partial<Anthropic.MessageCreateParamsNonStreaming> } {
+    if (this.opts.brain === "bedrock") {
+      this.llm ??= new AnthropicBedrockMantle({ awsRegion: this.opts.awsRegion }) as unknown as MessagesClient;
+      return { llm: this.llm, model: this.opts.bedrockModel, extra: { output_config: { effort: "low" } } };
+    }
+    this.llm ??= new Anthropic();
+    return { llm: this.llm, model: this.opts.anthropicModel ?? "claude-haiku-5-5", extra: {} };
+  }
+
+  private async withClaude(client: Client, utterance: string, speaker: string): Promise<AlexaTurn> {
+    const { llm, model, extra } = this.model();
+    const brain = this.opts.brain;
     const { tools } = await client.listTools();
     const claudeTools: Anthropic.Tool[] = tools.map((t) => ({
       name: t.name,
@@ -100,20 +129,20 @@ export class AlexaSimulator {
     const trace: TraceEntry[] = [];
 
     for (let turn = 0; turn < 6; turn++) {
-      const response = await this.bedrock.messages.create({
-        model: this.opts.bedrockModel,
+      const response = await llm.messages.create({
+        ...extra,
+        model,
         max_tokens: 4000,
-        output_config: { effort: "low" },
         system: SYSTEM(this.opts.parentName, speaker, now),
         tools: claudeTools,
         messages,
       });
-      if (response.stop_reason === "refusal") return { reply: "Sorry, I can't help with that.", trace, brain: "bedrock" };
+      if (response.stop_reason === "refusal") return { reply: "Sorry, I can't help with that.", trace, brain };
       messages.push({ role: "assistant", content: response.content });
       const uses = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
       if (response.stop_reason !== "tool_use" || uses.length === 0) {
         const reply = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(" ").trim();
-        return { reply, trace, brain: "bedrock" };
+        return { reply, trace, brain };
       }
       const results: Anthropic.ToolResultBlockParam[] = [];
       for (const use of uses) {
@@ -123,6 +152,6 @@ export class AlexaSimulator {
       }
       messages.push({ role: "user", content: results });
     }
-    return { reply: trace.map((t) => t.result).join(" "), trace, brain: "bedrock" };
+    return { reply: trace.map((t) => t.result).join(" "), trace, brain };
   }
 }

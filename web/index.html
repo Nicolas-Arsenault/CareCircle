@@ -60,11 +60,11 @@
   @media (max-width: 900px) { .backends .backend:not(.live) { display: none; } }
 
   main { max-width: 1400px; margin: 0 auto; padding: 16px 20px 28px; display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 16px; align-items: start; }
-  @media (max-width: 1000px) { main { grid-template-columns: 1fr; padding: 12px 16px 24px; } }
+  @media (max-width: 1000px) { main { grid-template-columns: minmax(0, 1fr); padding: 12px 16px 24px; } }
 
   /* Simulated Alexa device */
   .device { position: sticky; top: 16px; background: var(--device); color: var(--device-ink); border-radius: 24px; padding: 16px; display: flex; flex-direction: column; gap: 12px; height: calc(100dvh - 84px); min-height: 540px; }
-  @media (max-width: 1000px) { .device { position: static; height: 560px; } }
+  @media (max-width: 1000px) { .device { position: static; height: auto; min-height: 560px; } .transcript { max-height: 460px; } }
   .device-head { display: flex; align-items: center; gap: 12px; }
   .ring { width: 38px; height: 38px; border-radius: 50%; flex: none; position: relative; background: conic-gradient(var(--ring), #2c6cf0, var(--ring)); opacity: .3; transition: opacity .4s var(--ease); }
   .ring::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--device); }
@@ -98,6 +98,21 @@
   .call pre { margin: 6px 0 0; padding: 9px 11px; border-radius: var(--radius-sm); background: var(--device-2); font: 11.5px/1.5 var(--mono); white-space: pre-wrap; word-break: break-word; color: var(--device-ink); }
   .call pre .k { color: var(--device-muted); }
 
+  .intro { margin: auto 0; display: flex; flex-direction: column; gap: 12px; font-size: 13.5px; line-height: 1.5; color: var(--device-muted); }
+  .intro .big { font-size: 36px; color: var(--ring); }
+  .intro h2 { margin: 0; font-size: 17px; font-weight: 600; color: var(--device-ink); }
+  .intro p { margin: 0; }
+  .intro b { color: var(--device-ink); font-weight: 500; }
+  .intro .start { align-self: flex-start; border: 0; border-radius: 999px; padding: 10px 16px; background: var(--ring); color: var(--device); font: inherit; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+  .tour { display: flex; align-items: center; gap: 10px; background: var(--device-2); border-radius: 16px; padding: 8px 8px 8px 14px; font-size: 13px; color: var(--device-muted); }
+  .tour[hidden] { display: none; }
+  .tour .step { flex: 1; min-width: 0; }
+  .tour .step b { color: var(--device-ink); font-weight: 500; }
+  .tour button { flex: none; border: 0; border-radius: 999px; padding: 8px 14px; background: var(--ring); color: var(--device); font: inherit; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+  .tour button.quiet { background: transparent; color: var(--device-muted); padding: 8px; font-weight: 400; }
+  .msg.note { align-self: center; max-width: 100%; }
+  .msg.note .text { background: transparent; color: var(--device-muted); font-size: 12.5px; text-align: center; padding: 2px 8px; }
+  .hint { font-size: 11.5px; color: var(--device-muted); text-align: center; margin-top: -6px; }
   .suggest { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; mask-image: linear-gradient(90deg, #000 85%, transparent); }
   .suggest::-webkit-scrollbar { display: none; }
   .suggest button { flex: none; background: var(--device-2); border: 0; color: var(--device-ink); border-radius: 999px; padding: 7px 12px; font-size: 13px; transition: background .2s var(--ease), transform .1s; }
@@ -234,6 +249,7 @@
   .log .ls.Lambda { color: var(--sun); } .log .ls.EventBridge { color: var(--teal); } .log .ls.Alert { color: var(--med); }
   .log .lm { overflow-wrap: anywhere; }
   .log .empty-note { display: block; color: var(--dark-muted); font-family: var(--sans); }
+  .log li:has(.empty-note) { display: block; }
 
   /* Actions */
   .action { border: 0; text-align: left; gap: 18px; min-height: 120px; transition: transform .15s var(--ease); }
@@ -292,9 +308,22 @@
       <div class="ring" aria-hidden="true"></div>
       <div class="device-title"><b>Alexa</b><span id="device-status">Ready</span></div>
       <div class="seg" id="speakers" role="group" aria-label="Who is talking"></div>
+      <button type="button" class="icon-btn mic" id="mute" aria-pressed="false" aria-label="Mute Alexa's voice" title="Mute Alexa's voice"><i class="ph ph-speaker-high"></i></button>
     </div>
     <div class="transcript" id="chat" aria-live="polite">
-      <div class="hello" id="hello"><i class="ph ph-waveform big"></i><span id="hello-text">Tap a phrase or type to talk.</span></div>
+      <div class="intro" id="hello">
+        <i class="ph ph-waveform big" aria-hidden="true"></i>
+        <h2>Talk to CareCircle like it's Alexa+</h2>
+        <p>This panel plays the part of an Echo. Real Alexa+ add-ons need access Amazon grants per developer, so here a <b>simulated Alexa+</b> stands in for the voice and the language model.</p>
+        <p>Everything after that is real: each request goes to the <b>CareCircle MCP server</b>, the tool calls it made show under every answer, and the family dashboard updates live.</p>
+        <p>Take the guided demo, tap a phrase below, or type anything. <span id="hello-text"></span></p>
+        <button type="button" class="start" id="tour-start"><i class="ph-fill ph-play"></i>Start the 1-minute demo</button>
+      </div>
+    </div>
+    <div class="tour" id="tour" hidden aria-live="polite">
+      <span class="step" id="tour-step"></span>
+      <button type="button" id="tour-go"></button>
+      <button type="button" class="quiet" id="tour-skip" aria-label="End guided demo"><i class="ph ph-x"></i></button>
     </div>
     <div class="suggest" id="chips" aria-label="Suggestions"></div>
     <form class="composer" id="composer" autocomplete="off">
@@ -303,6 +332,7 @@
       <input id="say" placeholder="Say something to Alexa">
       <button type="submit" class="icon-btn send" id="send" aria-label="Send"><i class="ph ph-arrow-up"></i></button>
     </form>
+    <div class="hint" id="mic-hint">Typing works everywhere. Voice input works in Chrome, Edge and Safari.</div>
   </section>
 
   <section class="bento" aria-label="Family view">
@@ -427,7 +457,7 @@ const BACKEND_LABEL = {
   store: { file: "Local file", memory: "Memory", dynamodb: "DynamoDB" },
   summarizer: { template: "Templates", bedrock: "Claude" },
   notifier: { console: "Dashboard", sns: "SNS" },
-  brain: { rules: "Rules", bedrock: "Claude" },
+  brain: { rules: "Rules", bedrock: "Claude", claude: "Claude" },
 };
 
 async function api(path, opts) {
@@ -449,11 +479,13 @@ function setupSpeakers() {
   speaker = people[0].name;
   $("speakers").innerHTML = people.map((p, i) =>
     `<button type="button" aria-pressed="${i === 0}" data-role="${p.role}" data-p="${esc(p.name)}"><i class="ph ${p.icon}"></i>${esc(p.name)}</button>`).join("");
-  $("speakers").querySelectorAll("button").forEach((b) => b.onclick = () => {
-    speaker = b.dataset.p;
-    $("speakers").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
-    renderChips();
-  });
+  $("speakers").querySelectorAll("button").forEach((b) => b.onclick = () => setSpeaker(b.dataset.p));
+  renderChips();
+}
+
+function setSpeaker(name) {
+  speaker = name;
+  $("speakers").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.p === name));
   renderChips();
 }
 
@@ -464,7 +496,7 @@ function renderChips() {
   $("chips").innerHTML = phrases.map((p) => `<button type="button">${esc(p)}</button>`).join("");
   $("chips").querySelectorAll("button").forEach((b) => b.onclick = () => ask(b.textContent));
   const hello = $("hello-text");
-  if (hello) hello.textContent = isParent(speaker) ? `Speaking as ${cfg.parentName}` : `Speaking as Sarah, ${cfg.parentName}'s daughter`;
+  if (hello) hello.textContent = isParent(speaker) ? `You're speaking as ${cfg.parentName}; switch to Sarah, her daughter, at the top.` : `You're speaking as Sarah, ${cfg.parentName}'s daughter.`;
 }
 
 function addMessage(cls, html) {
@@ -484,8 +516,57 @@ function renderCalls(trace) {
       <pre>${fmtArgs(t.arguments)}\n\n<span class="k">result:</span> ${esc(t.result)}</pre></details>`).join("")}</div>`;
 }
 
+/* A short scripted walk-through, so a first-time visitor sees the whole loop without guessing what to say. */
+const TOUR = () => [
+  { who: cfg.parentName, say: "Good morning! Had my oatmeal and took my metformin", why: `${cfg.parentName} checks in. One sentence logs her dose and her breakfast.` },
+  { who: cfg.parentName, say: "I'm feeling a bit tired today", why: "Mood is logged too, in her own words." },
+  { who: "Sarah", say: `How's ${cfg.parentName} today?`, why: `Now Sarah, ${cfg.parentName}'s daughter, asks from her own Echo.` },
+  { who: "Sarah", say: `Did ${cfg.parentName} miss anything?`, why: "CareCircle checks for what didn't happen: a late check-in or a dose over an hour late." },
+  { who: "Sarah", say: "Give me the weekly summary", why: "A one-page summary for the doctor, from what was logged." },
+];
+let tourAt = -1;
+
+function showTour() {
+  const steps = TOUR();
+  $("tour").hidden = tourAt < 0;
+  if (tourAt < 0) return;
+  if (tourAt >= steps.length) {
+    $("tour-step").innerHTML = "<b>That's the loop.</b> Try your own phrases, or use Check for misses and Doctor summary on the right.";
+    $("tour-go").innerHTML = '<i class="ph ph-check"></i>Done';
+    return;
+  }
+  const step = steps[tourAt];
+  $("tour-step").innerHTML = `<b>Step ${tourAt + 1} of ${steps.length}.</b> ${esc(step.why)}`;
+  $("tour-go").innerHTML = `<i class="ph-fill ph-play"></i>Say it as ${esc(step.who)}`;
+}
+
+async function tourNext() {
+  const steps = TOUR();
+  if (tourAt >= steps.length) { tourAt = -1; return showTour(); }
+  const step = steps[tourAt];
+  setSpeaker(step.who);
+  $("tour-go").disabled = true;
+  const ok = await ask(step.say);
+  $("tour-go").disabled = false;
+  if (ok) tourAt++;
+  showTour();
+}
+
+$("tour-start").onclick = () => { tourAt = 0; showTour(); tourNext(); };
+$("tour-go").onclick = tourNext;
+$("tour-skip").onclick = () => { tourAt = -1; showTour(); };
+
+let muted = false;
+$("mute").onclick = () => {
+  muted = !muted;
+  $("mute").setAttribute("aria-pressed", muted);
+  $("mute").innerHTML = `<i class="ph ${muted ? "ph-speaker-slash" : "ph-speaker-high"}"></i>`;
+  if (muted && "speechSynthesis" in window) speechSynthesis.cancel();
+  if (muted && $("device").dataset.state === "speaking") setState("idle");
+};
+
 function speak(text) {
-  if (!("speechSynthesis" in window)) return setState("idle");
+  if (muted || !("speechSynthesis" in window)) return setState("idle");
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text.split("\n\n")[0]);
   u.rate = 1.02;
@@ -497,7 +578,7 @@ function speak(text) {
 let busy = false;
 async function ask(utterance) {
   utterance = utterance.trim();
-  if (!utterance || busy) return;
+  if (!utterance || busy) return false;
   busy = true;
   $("send").disabled = true;
   addMessage(`you ${isParent(speaker) ? "" : "family"}`, esc(utterance));
@@ -510,10 +591,12 @@ async function ask(utterance) {
     $("chat").scrollTop = $("chat").scrollHeight;
     speak(turn.reply || "Okay.");
     refresh();
+    return true;
   } catch (err) {
     reply.classList.add("error");
-    reply.querySelector(".text").textContent = `Sorry, something went wrong: ${err.message}`;
+    reply.querySelector(".text").textContent = `Sorry, something went wrong: ${err.message}. Please try again.`;
     setState("idle");
+    return false;
   } finally {
     busy = false;
     $("send").disabled = false;
@@ -522,19 +605,55 @@ async function ask(utterance) {
 
 $("composer").addEventListener("submit", (e) => { e.preventDefault(); ask($("say").value); $("say").value = ""; });
 
-// Voice input through the browser's speech recognition (Chrome, Edge, Safari).
+// Voice input through the browser's speech recognition (Chrome, Edge, Safari). It is optional:
+// words appear in the text box as they're heard, nothing is sent until speech ends, and every
+// failure says what happened and leaves typing as the way forward.
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const note = (text) => addMessage("note", esc(text));
 if (Recognition) {
   const rec = new Recognition();
   rec.lang = "en-US";
-  rec.interimResults = false;
-  rec.onresult = (e) => ask(e.results[0][0].transcript);
-  rec.onend = () => { $("mic").classList.remove("listening"); if ($("device").dataset.state === "listening") setState("idle"); };
-  rec.onerror = () => setState("idle");
-  $("mic").onclick = () => { $("mic").classList.add("listening"); setState("listening"); rec.start(); };
+  rec.interimResults = true;
+  rec.maxAlternatives = 1;
+  let listening = false;
+  let heard = "";
+  let failed = false;
+  const stop = () => { listening = false; $("mic").classList.remove("listening"); $("mic").setAttribute("aria-label", "Speak"); };
+  rec.onresult = (e) => {
+    heard = Array.from(e.results).map((r) => r[0].transcript).join(" ").trim();
+    $("say").value = heard;
+  };
+  rec.onerror = (e) => {
+    failed = true;
+    const why = {
+      "not-allowed": "Microphone access is blocked for this site. Allow it in the address bar, or just type.",
+      "service-not-allowed": "This browser won't do speech recognition here. Type instead.",
+      "no-speech": "I didn't hear anything. Tap the mic and talk, or type instead.",
+      "audio-capture": "No microphone was found. Type instead.",
+      "network": "Speech recognition needs the browser's online speech service, which didn't answer. Type instead.",
+    }[e.error];
+    if (why) note(why);
+  };
+  rec.onend = () => {
+    stop();
+    if ($("device").dataset.state === "listening") setState("idle");
+    if (!failed && heard) { $("say").value = ""; ask(heard); }
+    else if (!failed) note("I didn't catch that. Tap the mic and talk, or type instead.");
+  };
+  $("mic").onclick = () => {
+    if (listening) return rec.stop();
+    if (busy) return;
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+    heard = ""; failed = false;
+    try { rec.start(); } catch { return; }
+    listening = true;
+    $("mic").classList.add("listening");
+    $("mic").setAttribute("aria-label", "Stop listening");
+    setState("listening");
+  };
 } else {
-  $("mic").disabled = true;
-  $("mic").title = "Voice input isn't supported in this browser. Type instead.";
+  $("mic").hidden = true;
+  $("mic-hint").textContent = "This browser has no voice input, so type or tap a phrase. Voice works in Chrome, Edge and Safari.";
 }
 
 /* ---------- Widgets ---------- */

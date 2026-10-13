@@ -11,6 +11,8 @@ test("routes common phrases to the right tools", () => {
   assert.deepEqual(tools("Tell the kids I'm going to bed early"), ["notify_family"]);
   assert.deepEqual(tools("Good morning!"), ["log_checkin"]);
   assert.deepEqual(tools("Did Mom miss anything?", "Sarah"), ["check_missed"]);
+  assert.deepEqual(tools("Alexa, how's Mom doing?", "Sarah"), ["get_status"]);
+  assert.deepEqual(tools("Hey Alexa, tell the kids I'm going to bed early"), ["notify_family"]);
 });
 
 test("one sentence can log a meal and a dose", () => {
