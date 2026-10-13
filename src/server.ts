@@ -12,6 +12,17 @@ import { recentActivity } from "./activity.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const WEB_DIR = join(here, "..", "web");
+const NODE_MODULES = join(here, "..", "node_modules");
+
+/**
+ * Browser assets the family page loads, served from local npm packages so the
+ * demo works offline (no CDN): Phosphor icon fonts and the Geist typefaces.
+ */
+const VENDOR_ASSETS: Record<string, string> = {
+  "/vendor/phosphor": join(NODE_MODULES, "@phosphor-icons", "web", "src"),
+  "/vendor/geist": join(NODE_MODULES, "@fontsource-variable", "geist"),
+  "/vendor/geist-mono": join(NODE_MODULES, "@fontsource-variable", "geist-mono"),
+};
 
 /** Builds the HTTP app: the MCP endpoint, a small JSON API for the family page, and the simulator. */
 export function createHttpApp(
@@ -65,12 +76,17 @@ export function createHttpApp(
       res.status(400).json({ error: (err as Error).message });
     }
   };
+  // Which backends are active, so the page can show where data and alerts are going.
   api.get(
     "/config",
     wrap(async () => ({
       parentName: config.parentName,
       timeZone: config.timeZone,
+      checkinDeadline: config.checkinDeadline,
       brain: simulator ? process.env.ALEXA_BRAIN ?? "rules" : null,
+      store: config.store,
+      summarizer: config.summarizer,
+      notifier: config.notifier,
       environment: environment ?? null,
     })),
   );
@@ -81,6 +97,9 @@ export function createHttpApp(
   api.get("/timeline", wrap((req) => care.getTimeline(Number(req.query.days ?? 7))));
   api.post("/check", wrap(() => care.runAlertCheck()));
   api.get("/weekly", wrap(() => care.weeklySummary()));
+  // Raw 7-day numbers (doses per day, events, missed check-ins) for the dashboard widgets.
+  // No summarizer call, so it is cheap to poll even when SUMMARIZER=bedrock.
+  api.get("/week", wrap(() => care.weeklySnapshot()));
   if (simulator) {
     api.post(
       "/alexa",
@@ -95,6 +114,7 @@ export function createHttpApp(
   app.get("/healthz", (_req, res) => {
     res.json({ ok: true });
   });
+  for (const [route, dir] of Object.entries(VENDOR_ASSETS)) app.use(route, express.static(dir));
   app.use(express.static(WEB_DIR));
   return app;
 }
