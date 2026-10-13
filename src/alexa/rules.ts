@@ -117,7 +117,7 @@ export function planCalls(utterance: string, speaker?: string): PlannedCall[] {
       .trim();
     return [{ name: "notify_family", arguments: { message: capitalize(message || utterance), ...(by ? { by } : {}) } }];
   }
-  if (/\b(missed|did .* forget|check on)\b/.test(s)) return [{ name: "check_missed", arguments: {} }];
+  if (/\b(missed|did .* (miss|forget)|check on)\b/.test(s)) return [{ name: "check_missed", arguments: {} }];
   if (/\b(timeline|what happened|history|log)\b/.test(s) && !/\b(took|feel|ate)\b/.test(s)) {
     return [{ name: "get_timeline", arguments: { days: 3 } }];
   }

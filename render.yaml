@@ -1,0 +1,19 @@
+# One-click public demo on Render's free plan: https://render.com/deploy
+# A single Node process serves the MCP endpoint, the simulated Alexa and the family page.
+# It reseeds a demo week on every start, and the free instance sleeps when idle,
+# so the demo resets itself between visitors.
+services:
+  - type: web
+    name: carecircle
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm run seed && npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: NODE_VERSION
+        value: "22"
+      - key: CARE_TIMEZONE
+        value: America/Toronto

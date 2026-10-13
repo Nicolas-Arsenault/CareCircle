@@ -1,12 +1,104 @@
-# CareCircle
+<p align="center">
+  <a href="docs/video/carecircle-motion.mp4"><img src="docs/images/story/01-title.jpg" alt="CareCircle: Alexa+ keeps an aging parent and their family in the loop" width="100%"></a>
+</p>
 
-**An Alexa+ add-on that keeps an aging parent and their family in the loop.**
+<h1 align="center">CareCircle</h1>
+
+<p align="center"><b>An Alexa+ add-on that keeps an aging parent and their family in the loop.</b></p>
+
+<p align="center">
+  <a href="docs/video/carecircle-motion.mp4">▶ Motion demo (66 s)</a> ·
+  <a href="docs/video/app-walkthrough.mp4">▶ Real app walkthrough (46 s)</a> ·
+  <a href="docs/DEVPOST.md">Devpost write-up</a> ·
+  <a href="#architecture">Architecture</a>
+</p>
 
 Mom says *"had my oatmeal and the little white pill"* to Alexa. Her daughter, three hours away, asks *"how's Mom today?"* and hears a short, natural answer. If Mom hasn't checked in by 10 AM, or a dose goes unconfirmed, the family gets a text. On Friday there's a one-page summary ready for the doctor.
 
 CareCircle is an [MCP](https://modelcontextprotocol.io) server (spec **2025-11-25**, **Streamable HTTP**) built with the official TypeScript MCP SDK. It runs on your laptop with no cloud account, and deploys to AWS (Lambda, DynamoDB, EventBridge, SNS, Bedrock) with one command when you want it to.
 
 Built for the Amazon Developer Hackathon 2026, Alexa+ track.
+
+<p align="center">
+  <a href="docs/video/carecircle-motion.mp4"><img src="docs/images/motion-preview.gif" alt="Motion demo: Mom talks to Alexa, the MCP tool calls land in DynamoDB and the family dashboard updates" width="760"></a>
+</p>
+
+## How it works, in six frames
+
+Stills from the [motion demo](docs/video/carecircle-motion.mp4).
+
+| | |
+|---|---|
+| <img src="docs/images/story/02-family.jpg" alt="Mom lives alone, Sarah lives three hours away" width="420"> | <img src="docs/images/story/03-mom-talks.jpg" alt="Mom talks to her Echo and Alexa+ calls log_checkin" width="420"> |
+| **The problem.** Mom lives alone. Sarah, three hours away, wants to know she's okay without calling five times a day. | **Mom just talks.** "Good morning!" and "had my oatmeal and the little white pill" become three `log_checkin` calls. Alexa+ picks the tools, so there are no commands to learn. |
+| <img src="docs/images/story/04-shared-log.jpg" alt="Each call goes through the MCP server on Lambda into DynamoDB, and the family view updates" width="420"> | <img src="docs/images/story/05-sarah-asks.jpg" alt="Sarah asks how Mom is doing and Alexa answers with get_status" width="420"> |
+| **One shared log.** Each call goes through the MCP server on Lambda into DynamoDB, and the family dashboard updates within seconds. | **The family asks.** "How's Mom today?" calls `get_status` and gets one natural paragraph: check-in time, doses, mood, meals, what's next. |
+| <img src="docs/images/story/06-missed-dose.jpg" alt="An evening dose passes its grace period and SNS texts Sarah" width="420"> | <img src="docs/images/story/07-doctor-summary.jpg" alt="A one-page weekly summary for the doctor" width="420"> |
+| **It notices what didn't happen.** No check-in by 10 AM, or a dose more than an hour late, and EventBridge, the MissedCheckins Lambda and SNS text the family once. | **One page for the doctor.** A week of logs as a printable summary, written by Claude on Amazon Bedrock or by offline templates. No medical advice. |
+
+## In the real app
+
+<img src="docs/images/screenshots/02-dashboard.png" alt="CareCircle: a simulated Alexa on the left, Mom's colour-coded family dashboard on the right">
+
+**The demo app.** A simulated Alexa on the left calls the real MCP server; the family dashboard on the right shows check-in, medications, mood, meals, the week, the next visit, alerts and a live feed of what AWS is doing.
+
+| | |
+|---|---|
+| <img src="docs/images/screenshots/03-alexa-tool-calls.png" alt="Simulated Alexa showing the MCP tool calls behind each answer" width="380"> | <img src="docs/images/screenshots/04-family-asks.png" alt="Sarah asks how Mom is doing and whether she missed anything" width="380"> |
+| **Mom just talks.** One sentence becomes two `log_checkin` calls (a dose and a meal). Each reply shows the MCP calls it made, with arguments and results. | **The family asks.** Sarah switches speaker and asks "How's Mom today?" (`get_status`) and "Did Mom miss anything?" (`check_missed`). |
+
+<img src="docs/images/screenshots/01-morning-before.png" alt="Dashboard at 9:01 AM: no check-in yet, Metformin overdue, and an alert already sent to the family">
+
+**Before Mom says a word.** At 9:01 AM the scheduled check found Metformin (due 8:00) unconfirmed, and the alert is already on the family's list.
+
+<img src="docs/images/screenshots/05-doctor-summary.png" alt="Weekly summary for the doctor in a printable dialog">
+
+**One page for the doctor.** A week of logs as a printable summary: dose adherence, check-ins, mood trend and anything worth raising. Template sentences offline, or Claude on Amazon Bedrock.
+
+<img src="docs/images/screenshots/06-behind-the-scenes.png" alt="Behind the scenes card showing emulated DynamoDB, Lambda, EventBridge and SNS activity">
+
+**Behind the scenes.** Under `npm run aws:local` every Lambda invocation, scheduled run and SNS alert shows up live.
+
+The [full page](docs/images/screenshots/07-full-page.png) also has the weekly dose grid, mood history, next appointment and a filterable activity feed.
+
+## Architecture
+
+![CareCircle architecture](docs/images/architecture.svg)
+
+A turn, end to end:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Mom
+    participant Alexa as Alexa+ (or the simulator)
+    participant MCP as MCP server<br/>(Lambda + Function URL)
+    participant DB as DynamoDB
+    participant EB as EventBridge
+    participant Chk as MissedCheckins Lambda
+    participant SNS as SNS
+    actor Sarah
+
+    Mom->>Alexa: "Had my oatmeal and the little white pill"
+    Alexa->>MCP: tools/call log_checkin {kind: medication}
+    Alexa->>MCP: tools/call log_checkin {kind: meal}
+    MCP->>DB: put events, match the dose due around now
+    MCP-->>Alexa: "Got it, the family can see it."
+    Sarah->>Alexa: "How's Mom today?"
+    Alexa->>MCP: tools/call get_status
+    MCP->>DB: query today
+    MCP-->>Alexa: "Mom checked in at 9:02 AM, 1 of 2 medications taken…"
+    loop every 15 minutes
+        EB->>Chk: invoke
+        Chk->>DB: no check-in by 10 AM? dose more than an hour late?
+        Chk->>SNS: publish once per miss
+        SNS-->>Sarah: SMS / email
+    end
+```
+
+No AWS account? `npm run aws:local` runs the same handlers against local emulators:
+
+![Emulated AWS on a laptop](docs/images/local-aws.svg)
 
 ## What it does
 
@@ -27,6 +119,12 @@ Behind the tools:
 - **Natural dose matching.** "Took my metformin" marks that medication. A generic "took my pills" marks the doses due around then, so the morning pills don't cover the evening ones.
 - **Summaries.** Template sentences offline, or Claude on Amazon Bedrock when `SUMMARIZER=bedrock`. If Bedrock fails it falls back to the template.
 - **No medical advice.** It only reports what was logged.
+
+## Try it live
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Nicolas-Arsenault/CareCircle)
+
+[`render.yaml`](render.yaml) runs the whole demo (MCP endpoint, simulated Alexa and family page) as one Node process on Render's free plan. It seeds a demo week on every start, and the free instance sleeps when idle, so the demo resets itself between visitors. The first visit after a sleep takes about a minute to wake up.
 
 ## Run it locally (no AWS needed)
 
@@ -156,9 +254,18 @@ src/
   notify/            console and SNS alerts
   lambda/            AWS Lambda entry points (MCP endpoint, missed check-in job)
 web/index.html       simulated Alexa + family view (single file, no build step)
+docs/                Alexa+ notes, Devpost write-up, diagrams, screenshots, demo videos
 infra/               AWS CDK stack
 test/                node:test suites
 ```
+
+## Demo media
+
+Everything under `docs/images` and `docs/video` is generated from this repo:
+
+- **Screenshots and the walkthrough video** come from the real app under `npm run aws:local -- --seed`, driven by Playwright.
+- **The motion demo** is [`docs/video/motion.html`](docs/video/motion.html), a single page you can open in a browser (after `npm install`) to watch it play live. `node docs/video/render.mjs` renders it frame by frame to MP4 (needs Playwright and ffmpeg; see the top of the script).
+- **Diagrams** are hand-written SVG in [`docs/images`](docs/images), with PNG copies for places that don't take SVG, like Devpost.
 
 ## Privacy
 
