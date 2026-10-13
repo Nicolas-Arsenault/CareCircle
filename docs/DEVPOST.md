@@ -1,6 +1,10 @@
 # CareCircle: Devpost submission
 
-> Copy each section into the matching Devpost field. Images referenced here live in `docs/images/` (PNG copies are there for upload). Demo videos are in `docs/video/`.
+> Copy each section into the matching Devpost field. Images use raw GitHub links to `main`, so they show up in Devpost's markdown once this branch is merged; the same files are in `docs/images/` for the image gallery.
+>
+> **Video field:** Devpost takes a YouTube, Vimeo or Youku link. Upload `docs/video/carecircle-motion.mp4` (66 s) and paste its link. Use `docs/images/story/01-title.jpg` as the thumbnail.
+>
+> **Image gallery (3:2 or 16:9):** `story/01-title.jpg` first, then `story/03-mom-talks.jpg`, `story/04-shared-log.jpg`, `story/05-sarah-asks.jpg`, `story/06-missed-dose.jpg`, `story/07-doctor-summary.jpg`, `architecture.png`, `screenshots/02-dashboard.png`.
 
 **Tagline:** An Alexa+ add-on that keeps an aging parent and their family in the loop.
 
@@ -13,9 +17,11 @@
 - Motion demo: `docs/video/carecircle-motion.mp4`
 - Real app walkthrough: `docs/video/app-walkthrough.mp4`
 
-![CareCircle dashboard](images/screenshots/02-dashboard.png)
+![CareCircle](https://raw.githubusercontent.com/Nicolas-Arsenault/CareCircle/main/docs/images/story/01-title.jpg)
 
 ## Inspiration
+
+![Mom lives alone. Sarah lives three hours away.](https://raw.githubusercontent.com/Nicolas-Arsenault/CareCircle/main/docs/images/story/02-family.jpg)
 
 Millions of adults look after a parent who still lives alone. The worry is constant and low-grade: did Mom take her pills, did she eat, is she just tired or is something wrong? The usual answer is to phone several times a day, which wears on everyone, or to put an app in front of someone who doesn't want to learn one.
 
@@ -25,19 +31,40 @@ Voice is the right interface here. An older parent already says "good morning" t
 
 CareCircle is a care log that both sides of the family talk to through Alexa+.
 
-- **Mom just talks.** "Good morning", "had my oatmeal and the little white pill", "I'm feeling tired today". Alexa+ maps each sentence to CareCircle's tools; a single sentence can log a meal and a dose at once. A generic "took my pills" marks the doses due around then, so the morning pills don't cover the evening ones; "took my metformin" marks that one.
-- **The family asks.** Sarah, three hours away, asks "How's Mom today?" and hears one short paragraph: when Mom first checked in, how many medications she's taken, her mood, meals, and what's coming up.
-- **It notices what didn't happen.** A scheduled job checks every 15 minutes. If there's no check-in by 10 AM, or a dose is more than an hour late, the family gets one text or email through SNS, and only one per miss.
+![Mom just talks](https://raw.githubusercontent.com/Nicolas-Arsenault/CareCircle/main/docs/images/story/03-mom-talks.jpg)
+
+**Mom just talks.** "Good morning", "had my oatmeal and the little white pill", "I'm feeling tired today". Alexa+ maps each sentence to CareCircle's tools; a single sentence can log a meal and a dose at once. A generic "took my pills" marks the doses due around then, so the morning pills don't cover the evening ones; "took my metformin" marks that one.
+
+![Every call lands in the shared log](https://raw.githubusercontent.com/Nicolas-Arsenault/CareCircle/main/docs/images/story/04-shared-log.jpg)
+
+**One shared log.** Every call goes through the MCP server on Lambda into DynamoDB, and the family dashboard updates within seconds.
+
+![Sarah asks how Mom is doing](https://raw.githubusercontent.com/Nicolas-Arsenault/CareCircle/main/docs/images/story/05-sarah-asks.jpg)
+
+**The family asks.** Sarah, three hours away, asks "How's Mom today?" and hears one short paragraph: when Mom first checked in, how many medications she's taken, her mood, meals, and what's coming up.
+
+![It notices what didn't happen](https://raw.githubusercontent.com/Nicolas-Arsenault/CareCircle/main/docs/images/story/06-missed-dose.jpg)
+
+**It notices what didn't happen.** A scheduled job checks every 15 minutes. If there's no check-in by 10 AM, or a dose is more than an hour late, the family gets one text or email through SNS, and only one per miss.
+
+![One page for the doctor](https://raw.githubusercontent.com/Nicolas-Arsenault/CareCircle/main/docs/images/story/07-doctor-summary.jpg)
+
+**One page for the doctor.** `weekly_summary` turns a week of logs into dose adherence, check-in streak, mood trend and anything worth raising at the appointment. It uses Claude on Amazon Bedrock when enabled and plain templates otherwise.
+
+![The demo app: simulated Alexa and the family dashboard](https://raw.githubusercontent.com/Nicolas-Arsenault/CareCircle/main/docs/images/screenshots/02-dashboard.png)
+
+**A family dashboard.** Colour-coded widgets for check-in, medications, mood, meals, the week's dose grid, the next visit, alerts sent, and a live "Behind the scenes" feed of every Lambda call, scheduled run and alert.
+
+Also:
+
 - **Reminders and appointments.** "Remind me about the doctor Thursday at 2" works from either side.
-- **One page for the doctor.** `weekly_summary` turns a week of logs into dose adherence, check-in streak, mood trend and anything worth raising at the appointment. It uses Claude on Amazon Bedrock when enabled and plain templates otherwise.
-- **A family dashboard.** Colour-coded widgets for check-in, medications, mood, meals, the week's dose grid, the next visit, alerts sent, and a live "Behind the scenes" feed of every Lambda call, scheduled run and alert.
 - **No medical advice.** CareCircle only reports what was logged, and says so.
 
 The eight MCP tools: `log_checkin`, `add_reminder`, `list_today`, `get_status`, `get_timeline`, `check_missed`, `notify_family`, `weekly_summary`.
 
 ## How we built it
 
-![Architecture](images/architecture.png)
+![Architecture](https://raw.githubusercontent.com/Nicolas-Arsenault/CareCircle/main/docs/images/architecture.png)
 
 - **MCP server.** Built with the official TypeScript MCP SDK, speaking MCP spec 2025-11-25 over stateless Streamable HTTP, so it runs the same way on a laptop and inside a Lambda Function URL with no adapter layer. Tool inputs are Zod schemas with descriptions written for Alexa+'s model, which reads the tool list and decides what to call. There's no intent model to maintain.
 - **Care logic in one place.** `src/care.ts` holds all behaviour (dose matching, missed check-in detection, de-duplicated alerts, status and weekly snapshots). The MCP tools, the dashboard API and the Lambda handlers are thin wrappers around it, so every surface agrees.
@@ -46,7 +73,7 @@ The eight MCP tools: `log_checkin`, `add_reminder`, `list_today`, `get_status`, 
 - **A simulated Alexa.** Real Alexa+ toolkit access goes through Amazon (see Challenges), so the web app includes a simulated Alexa that calls the MCP endpoint over real Streamable HTTP, exactly as Alexa+ would, and shows each `tools/call` with its arguments and result. It understands speech with offline rules by default, or with Claude on Bedrock (`ALEXA_BRAIN=bedrock`) choosing the tools the way Alexa+'s model does.
 - **Tests.** `node:test` suites cover the care logic, phrase routing, and a full MCP round trip over HTTP.
 
-![Emulated AWS](images/local-aws.png)
+![Emulated AWS](https://raw.githubusercontent.com/Nicolas-Arsenault/CareCircle/main/docs/images/local-aws.png)
 
 ## Challenges we ran into
 

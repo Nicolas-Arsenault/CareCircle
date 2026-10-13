@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/screenshots/02-dashboard.png" alt="CareCircle: a simulated Alexa on the left, Mom's colour-coded family dashboard on the right" width="100%">
+  <a href="docs/video/carecircle-motion.mp4"><img src="docs/images/story/01-title.jpg" alt="CareCircle: Alexa+ keeps an aging parent and their family in the loop" width="100%"></a>
 </p>
 
 <h1 align="center">CareCircle</h1>
@@ -23,7 +23,24 @@ Built for the Amazon Developer Hackathon 2026, Alexa+ track.
   <a href="docs/video/carecircle-motion.mp4"><img src="docs/images/motion-preview.gif" alt="Motion demo: Mom talks to Alexa, the MCP tool calls land in DynamoDB and the family dashboard updates" width="760"></a>
 </p>
 
-## See it
+## How it works, in six frames
+
+Stills from the [motion demo](docs/video/carecircle-motion.mp4).
+
+| | |
+|---|---|
+| <img src="docs/images/story/02-family.jpg" alt="Mom lives alone, Sarah lives three hours away" width="420"> | <img src="docs/images/story/03-mom-talks.jpg" alt="Mom talks to her Echo and Alexa+ calls log_checkin" width="420"> |
+| **The problem.** Mom lives alone. Sarah, three hours away, wants to know she's okay without calling five times a day. | **Mom just talks.** "Good morning!" and "had my oatmeal and the little white pill" become three `log_checkin` calls. Alexa+ picks the tools, so there are no commands to learn. |
+| <img src="docs/images/story/04-shared-log.jpg" alt="Each call goes through the MCP server on Lambda into DynamoDB, and the family view updates" width="420"> | <img src="docs/images/story/05-sarah-asks.jpg" alt="Sarah asks how Mom is doing and Alexa answers with get_status" width="420"> |
+| **One shared log.** Each call goes through the MCP server on Lambda into DynamoDB, and the family dashboard updates within seconds. | **The family asks.** "How's Mom today?" calls `get_status` and gets one natural paragraph: check-in time, doses, mood, meals, what's next. |
+| <img src="docs/images/story/06-missed-dose.jpg" alt="An evening dose passes its grace period and SNS texts Sarah" width="420"> | <img src="docs/images/story/07-doctor-summary.jpg" alt="A one-page weekly summary for the doctor" width="420"> |
+| **It notices what didn't happen.** No check-in by 10 AM, or a dose more than an hour late, and EventBridge, the MissedCheckins Lambda and SNS text the family once. | **One page for the doctor.** A week of logs as a printable summary, written by Claude on Amazon Bedrock or by offline templates. No medical advice. |
+
+## In the real app
+
+<img src="docs/images/screenshots/02-dashboard.png" alt="CareCircle: a simulated Alexa on the left, Mom's colour-coded family dashboard on the right">
+
+**The demo app.** A simulated Alexa on the left calls the real MCP server; the family dashboard on the right shows check-in, medications, mood, meals, the week, the next visit, alerts and a live feed of what AWS is doing.
 
 | | |
 |---|---|
